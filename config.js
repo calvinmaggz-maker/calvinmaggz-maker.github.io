@@ -4,4 +4,4 @@ IK.cfg.bankDetails={name:'[Account name]',bank:'[Bank name]',number:'[Account nu
 IK.cfg.limits={minRisk:300,minDeposit:500,minWithdraw:100,maxWithdraw:200000,feePct:30};
 IK.cfg.testCode='123456';
 /* Set to false before a real launch to hide the TEST MODE bar: */
-IK.cfg.TEST=true;
+IK.cfg.TEST=false;
