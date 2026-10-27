@@ -22,7 +22,7 @@ var chk=function(id,html,on){return '<div class="chk'+(on?' on':'')+'" id="'+id+
 var isOn=function(id){var e=$('#'+id);return e&&e.classList.contains('on')};
 
 /* splash */
-IK.screens.splash={flush:true,render:function(){return '<div class="splash">'+IK.crown(190)+'<div class="wm xl" style="margin-top:12px">INVESTO <span>KINGS</span></div><div class="tag">COPY. TRADE. GROW.</div><div class="bar"><i></i></div><p class="auth">We operate under an Authorised FSP</p></div>'},mount:function(){setTimeout(IK.entry,1900)}};
+IK.screens.splash={flush:true,render:function(){return '<div class="splash">'+IK.crown(190)+'<div class="wm xl" style="margin-top:12px">INVESTO <span>KINGS</span></div><div class="tag">'+IK.cfg.tagline+'</div><div class="bar"><i></i></div><p class="auth">We operate under an Authorised FSP</p></div>'},mount:function(){setTimeout(IK.entry,1900)}};
 
 /* welcome */
 var WI=0,SL=[['bolt','Get trade alerts','We send Gold and Silver trade setups straight to your phone.',''],['timer','Place trades in one tap','Every alert has a countdown. Tap Place trade before it ends.','o'],['shield','Your money stays separate','Client money is held in separate client accounts. Deposit and withdraw right in the app.','']];
@@ -34,7 +34,7 @@ IK.acts.welSkip=function(){WI=0;S().seenWelcome=true;IK.save();IK.go('landing',{
 
 /* landing */
 IK.screens.landing={render:function(){var c=C().company;
- return '<div class="center" style="margin-top:14px">'+IK.crown(110)+'<div class="wm lg" style="margin-top:6px">INVESTO <span>KINGS</span></div><div class="tag">COPY. TRADE. GROW.</div></div>'
+ return '<div class="center" style="margin-top:14px">'+IK.crown(110)+'<div class="wm lg" style="margin-top:6px">INVESTO <span>KINGS</span></div><div class="tag">'+IK.cfg.tagline+'</div></div>'
  +'<h1 class="h1 center" style="font-size:26px;margin-top:28px">Gold and Silver trade setups, sent straight to your phone</h1><p class="sub center">Verify your account to receive trade alerts. Each alert gives you a short window to place the trade.</p>'
  +'<section class="risk"><h2>Risk disclosure</h2><p>Trading Gold and Silver carries a high level of risk and may not be suitable for everyone. You may lose some or all of your capital. Past performance is not a guarantee of future results.</p></section>'
  +'<a class="btn" style="margin-top:22px" data-go="register">Get started</a><p class="sub center mt16">Already have an account? <a class="link inl" data-go="login">Log in</a></p>'
@@ -143,7 +143,7 @@ IK.notifBlocked=function(){IK.csheet('belloff','o','Alerts are turned off','<p c
 IK.acts.openPhoneSettings=function(){IK.toast('Open Android Settings > Apps > Investo Kings > Notifications');IK.closeTop()};
 
 /* login */
-IK.screens.login={render:function(){IK.resetForgot();return IK.hdr('')+'<div class="center mt8">'+IK.crown(92)+'<div class="wm md" style="margin-top:4px">INVESTO <span>KINGS</span></div><div class="tag">COPY. TRADE. GROW.</div></div><h1 class="h1">Welcome back</h1><p class="sub">Log in to see your trades and receive new alerts.</p>'
+IK.screens.login={render:function(){IK.resetForgot();return IK.hdr('')+'<div class="center mt8">'+IK.crown(92)+'<div class="wm md" style="margin-top:4px">INVESTO <span>KINGS</span></div><div class="tag">'+IK.cfg.tagline+'</div></div><h1 class="h1">Welcome back</h1><p class="sub">Log in to see your trades and receive new alerts.</p>'
  +'<div class="field"><label for="l_id">Email or mobile number</label><input class="inp" id="l_id" autocomplete="username" placeholder="name@example.com or 82 123 4567"></div>'
  +'<div class="field"><label for="l_pw">Password</label><div class="iw"><input class="inp" id="l_pw" type="password" autocomplete="current-password" placeholder="Enter your password"><button type="button" class="eye" data-act="eye" data-arg="l_pw">Show</button></div></div>'
  +'<div style="text-align:right;margin-top:12px"><a class="link inl" data-go="forgot">Forgot password?</a></div><a class="btn" data-act="loginSubmit">Log in</a>'
@@ -178,7 +178,7 @@ IK.resetForgot=function(){FS=1};
 /* legal + about */
 var LEG={terms:['Terms of Service',['About these terms','Using the app','Your account','Trade alerts','Fees','Risk','Changes to these terms','Contact']],privacy:['Privacy Policy',['What information we collect','How we use your information','Who we share it with','How long we keep it','Your rights under POPIA','Information Officer and contact']],paia:['PAIA Manual',['About this manual','About Investo Kings','How to request information','Fees','Information Officer and contact']]};
 IK.screens.legal={render:function(p){var l=LEG[p.k]||LEG.terms;return IK.hdr(l[0])+'<p class="sub" style="font-size:13.5px">Version 1.0 &middot; [effective date]</p><div class="legal">'+l[1].map(function(t,i){return '<div class="sec2"><b>'+(i+1)+'. '+t+'</b><p>[Legal wording to be added]</p></div>'}).join('')+'</div>'}};
-IK.screens.about={render:function(){var c=C().company;return IK.hdr('About and Contact')+'<div class="center" style="margin-top:20px">'+IK.crown(100)+'<div class="wm md" style="margin-top:6px">INVESTO <span>KINGS</span></div><div class="tag">COPY. TRADE. GROW.</div></div><p class="sub center">'+esc(c.desc)+'</p>'
+IK.screens.about={render:function(){var c=C().company;return IK.hdr('About and Contact')+'<div class="center" style="margin-top:20px">'+IK.crown(100)+'<div class="wm md" style="margin-top:6px">INVESTO <span>KINGS</span></div><div class="tag">'+IK.cfg.tagline+'</div></div><p class="sub center">'+esc(c.desc)+'</p>'
  +'<div class="sec">Company details</div>'+IK.rows([['Registered name',esc(c.name)],['Company Reg No',esc(c.reg)],['FSP License No',esc(c.fsp)],['VAT No',esc(c.vat)],['Address',esc(c.address)]])+'<p style="margin-top:10px;font-size:13px;color:#d0d0d0;font-weight:600">We operate under an Authorised FSP</p>'
  +'<div class="sec">Contact us</div>'+IK.rows([['Email',esc(c.email)],['Phone',esc(c.phone)],['Hours',esc(c.hours)]])
  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><a class="btn" data-act="callUs">Call us</a><a class="btn line" data-act="emailUs">Email us</a></div>'

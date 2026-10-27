@@ -203,3 +203,61 @@ ul.ins li::before{content:"";position:absolute;left:0;top:9px;width:6px;height:6
 .faceov .oval{position:relative;width:260px;height:330px;margin:46px auto 0}
 .faceov .oval svg{width:260px;height:330px;overflow:visible}
 @media (prefers-reduced-motion:reduce){.px.live,.ov .sheet,.ov .dlg{animation:none}}
+
+/* ===== v2: transitions, background, zoom, live bar, flag, risk editor ===== */
+:root{--ease:cubic-bezier(0.4,0,0.2,1);--dur:280ms;--z:1;--grad:linear-gradient(160deg,#0a0d0b 0%,#151917 38%,#101311 62%,#080c09 100%)}
+#app{--bgimg:var(--grad);--bgsize:cover;--bgpos:center}
+#app.bg-map{--bgimg:url(bg-map.png),var(--grad);--bgsize:240% auto,cover;--bgpos:58% 24%,center}
+#app.bg-words{--bgimg:url(bg-words.png),var(--grad);--bgsize:cover,cover;--bgpos:center,center}
+#app,.fullscr{background-color:#0a0d0b;background-image:var(--bgimg);background-size:var(--bgsize);background-position:var(--bgpos);background-repeat:no-repeat}
+.fullscr{background-image:var(--bgimg)}
+.fullscr.cam2{background:radial-gradient(circle at 50% 45%,#1d1d1d,#050505 70%)}
+#screen,#tabs,#livebar,.ov .pane,.fullscr>*{zoom:var(--z)}
+.ov .pane.nozoom{zoom:1}
+.tag{text-transform:uppercase}
+@keyframes sIn{from{opacity:0;transform:translateX(34px)}to{opacity:1;transform:none}}
+@keyframes sBack{from{opacity:0;transform:translateX(-34px)}to{opacity:1;transform:none}}
+@keyframes sTab{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+#screen.t-fwd{animation:sIn var(--dur) var(--ease)}
+#screen.t-back{animation:sBack var(--dur) var(--ease)}
+#screen.t-tab{animation:sTab var(--dur) var(--ease)}
+@keyframes fdIn{from{opacity:0}to{opacity:1}}
+@keyframes fdOut{from{opacity:1}to{opacity:0}}
+@keyframes upIn{from{opacity:0;transform:translateY(42px)}to{opacity:1;transform:none}}
+@keyframes downOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(42px)}}
+@keyframes popIn{from{opacity:0;transform:translateY(-46%) scale(.95)}to{opacity:1;transform:translateY(-50%) scale(1)}}
+@keyframes popOut{from{opacity:1;transform:translateY(-50%) scale(1)}to{opacity:0;transform:translateY(-54%) scale(.95)}}
+@keyframes fsIn{from{opacity:0;transform:translateX(34px)}to{opacity:1;transform:none}}
+.ov .bd{animation:fdIn var(--dur) var(--ease)}
+.ov .sheet{animation:upIn var(--dur) var(--ease)}
+.ov .dlg{animation:popIn var(--dur) var(--ease)}
+.ov .fullscr{animation:fsIn var(--dur) var(--ease)}
+.ov.out .bd{animation:fdOut 250ms var(--ease) forwards}
+.ov.out .sheet{animation:downOut 250ms var(--ease) forwards}
+.ov.out .dlg{animation:popOut 250ms var(--ease) forwards}
+.ov.out .fullscr{animation:fdOut 250ms var(--ease) forwards}
+@media (prefers-reduced-motion:reduce){#screen.t-fwd,#screen.t-back,#screen.t-tab,.ov .bd,.ov .sheet,.ov .dlg,.ov .fullscr,.ov.out .bd,.ov.out .sheet,.ov.out .dlg,.ov.out .fullscr{animation:none}}
+#tabs button{font-size:10.5px;padding:4px 0;min-width:0}
+#tabs button svg{width:23px;height:23px}
+#tabs{background:rgba(10,13,11,.96)}
+#livebar{display:none;flex:0 0 auto;background:rgba(10,13,11,.96);border-top:1px solid var(--line);padding:9px 16px;gap:10px;justify-content:space-between;align-items:center}
+#livebar.show{display:flex}
+#livebar .c{flex:1;display:flex;flex-direction:column;min-width:0}
+#livebar small{font-size:11.5px;color:var(--muted)}
+#livebar b{font-size:18px;margin-top:1px}
+.pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);margin-right:6px;animation:pls 1.4s ease-in-out infinite}
+@keyframes pls{50%{opacity:.35}}
+.flag{display:inline-block;vertical-align:middle;margin-left:8px;box-shadow:0 0 0 1px rgba(255,255,255,.2);border-radius:4px}
+.rin{display:flex;align-items:center;gap:6px;font-size:34px;font-weight:800;margin-top:2px}
+.rin input{flex:1;min-width:0;background:none;border:0;outline:none;font-size:34px;font-weight:800;color:#fff}
+.riskbox.bad{border-color:var(--red);background:#2a1212}
+.potrow{display:flex;justify-content:space-between;font-size:14.5px;padding:3px 0}
+.aiwrap{text-align:center;margin-top:40px}
+.aiic{width:150px;height:150px;border-radius:50%;margin:0 auto;display:grid;place-items:center;background:#14261a;border:3px solid var(--green);box-shadow:0 0 50px rgba(57,255,20,.4);color:var(--green)}
+.aiic svg{width:76px;height:76px;stroke-width:1.5}
+input[type=range]{accent-color:#39ff14;height:34px}
+.pvbox{margin-top:12px;padding:14px;border-radius:14px;background:#171717;border:1.5px solid var(--line)}
+
+#screen.split{display:flex;flex-direction:column;overflow:hidden;padding-bottom:0}
+#screen.split .fixed{flex:0 0 auto}
+#screen.split .scrollarea{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;margin:8px -18px 0;padding:0 18px 18px}

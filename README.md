@@ -9,6 +9,7 @@ All files sit in one flat folder on purpose, so you can upload them from a phone
 - manifest.webmanifest: the PWA manifest (name, colours, icons, screenshots)
 - sw.js: the service worker (makes the app work offline)
 - icon-192.png, icon-512.png, icon-maskable-512.png, icon-monochrome-512.png, apple-touch-icon.png, favicon-48.png: icons
+- bg-map.png, bg-words.png: the dotted world map and INVESTO KINGS wordmark backgrounds
 - screenshot-1.png, screenshot-2.png, screenshot-3.png: screenshots for PWABuilder
 - .nojekyll and .well-known/assetlinks.json: two hidden helper files (you create these on GitHub, see Step 5)
 
@@ -21,7 +22,7 @@ PWABuilder needs a public https web address. The easiest free way from a phone i
 
 ## Step 1. Get the files onto your phone
 1. Download investo-kings-pwa.zip to your phone.
-2. Open the Files app, tap the zip, tap Extract. You now have a folder with about 19 files.
+2. Open the Files app, tap the zip, tap Extract. You now have a folder with about 22 files.
 
 ## Step 2. Make a GitHub account and the website repository
 1. In Chrome go to github.com and sign up (free). Confirm your email.
@@ -99,6 +100,23 @@ Money rules built in: minimum deposit R500, minimum withdrawal R100, maximum wit
 1Voucher test PINs (16 digits): ending 0500 adds R500, 1000 adds R1,000, 5000 adds R5,000, 0100 is below the minimum, 0000 is already used. Anything else is invalid.
 
 Bank deposits and withdrawals complete by themselves after about 20 seconds (switch this off in the test controls to confirm them yourself).
+
+
+---------------------------------------------------------------------
+# NEW in this version (test build 1.1)
+- Slide and fade transitions on every screen and pop-up (280 ms, cubic-bezier 0.4, 0, 0.2, 1).
+- Clients choose their own risk amount on the Place trade screen. Minimum R300, maximum their balance. The owner's signal only suggests a risk.
+- South African flag next to the client's name on the Dashboard and Profile.
+- New AI tab in the bottom menu with a Coming soon screen.
+- Dashboard footer: live traders now and floating profit across all clients' live trades. In this test build these numbers are SIMULATED: when you send a signal, a pretend crowd of 40 to 150 clients joins.
+- Settings > Display: zoom slider (Small to Big, 85% to 125%) and background choice (World map, Wordmark, Plain).
+- Backgrounds: a dark linear gradient on every screen, with a faint grey dotted world map (default) or INVESTO KINGS wordmark pattern.
+- Tag line is now "Trade your future" (change it in core.js: tagline).
+- Sounds (made inside the app, no files): notification, screen transition, trade placed, trade closed (win and loss versions), wrong PIN, and a separate unique trade alert sound that repeats about every 7 seconds while the alert pop-up is open. Switch them in Settings: "Trade alert sound and vibration" and "App sounds". Sounds start after your first tap on the app (Android rule), and they only play while the app is open. Alerts while the app is closed need a server and a native app notification channel.
+- Live trades: logo, title and Running profit stay fixed, only the trades scroll.
+- Wallet: the balance box with Deposit and Withdraw is fixed at the top with the Withdrawals/Deposits bar, only the transactions scroll. User details were removed from this screen.
+- History: header, totals and filters stay fixed, only the trades scroll.
+This version already uses ik-cache-v2 in sw.js, so phones that had the first version will update by themselves. For your next update after this one, change it to ik-cache-v3.
 
 ---------------------------------------------------------------------
 # Updating the app later
