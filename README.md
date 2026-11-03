@@ -10,6 +10,11 @@ All files sit in one flat folder on purpose, so you can upload them from a phone
 - sw.js: the service worker (makes the app work offline)
 - icon-192.png, icon-512.png, icon-maskable-512.png, icon-monochrome-512.png, apple-touch-icon.png, favicon-48.png: icons
 - bg-map.png, bg-words.png: the dotted world map and INVESTO KINGS wordmark backgrounds
+- ai-engine.js, screens-ai.js: the AI Trading simulation and the client AI screens
+- admin.html, admin.css, admin.js, admin.webmanifest: the Admin dashboard
+- electron-main.js, package.json, desktop-build/: Windows .exe project
+- ARCHITECTURE-AI.md: how to connect the real EA later
+- ik-sync.js, SETUP-ONLINE-DATABASE.md: online database for phone and PC
 - screenshot-1.png, screenshot-2.png, screenshot-3.png: screenshots for PWABuilder
 - .nojekyll and .well-known/assetlinks.json: two hidden helper files (you create these on GitHub, see Step 5)
 
@@ -116,7 +121,38 @@ Bank deposits and withdrawals complete by themselves after about 20 seconds (swi
 - Live trades: logo, title and Running profit stay fixed, only the trades scroll.
 - Wallet: the balance box with Deposit and Withdraw is fixed at the top with the Withdrawals/Deposits bar, only the transactions scroll. User details were removed from this screen.
 - History: header, totals and filters stay fixed, only the trades scroll.
-This version already uses ik-cache-v2 in sw.js, so phones that had the first version will update by themselves. For your next update after this one, change it to ik-cache-v3.
+ This version uses ik-cache-v4 in sw.js, so phones that had an earlier version update by themselves. For your next update change it to ik-cache-v5.
+
+
+---------------------------------------------------------------------
+# NEW in test build 1.2: AI Trading (SIMULATION) and the Admin dashboard
+- admin.html is the Admin dashboard (black and gold). It also runs the AI engine, so keep it open while testing.
+- The client app's AI tab is now live: status, schedule countdown, previous session, setup (instruments, trades per scalp 2 or 4, lot, target), agreement, START and STOP AI, running monitor, results, history.
+- Everything is simulated with virtual funds. No real trading.
+
+## How to test AI on one phone or one PC (no setup)
+1. Open  https://yourusername.github.io/admin.html  in Chrome. Sign in: admin / admin, then code 123456. On a phone, turn on Desktop site in the Chrome menu.
+2. Open the client app in a second tab or window (the installed app or https://yourusername.github.io/).
+3. In the client, tap the orange TEST MODE bar, then "Play as Client D" (or B, C). Client A has R500 and is below the R1,000 minimum on purpose.
+4. In the admin go to AI Trading > Test Lab. Pick speed 60x (2 hours takes 2 minutes) and the market mood. Then go to AI Control Dashboard and tap "Activate AI now".
+5. In the client open the AI tab, sign the agreement, set your target and tap START AI. Watch trades open and close. Try STOP AI.
+6. In the admin try: Terminate session, Test automatic expiry, Test Guardian (silence the master EA), "Close orders fail" (then use Close manually), Generate scalp, price gap and spread scenarios.
+7. Open Reports and Session History in the admin. The client shows the same session in AI > View session history. History stays after restarting.
+Rules built in: AI uses the whole balance (minimum R1,000), withdrawals, deposits and signal trading pause while AI runs, a scalp is 2 trades (or 4 if chosen) in one direction, the AI stops at the target, and nothing restarts in the same session. At the weekend only BTCUSD trades.
+To use the admin and the client on different devices (phone and PC), connect the online database. See SETUP-ONLINE-DATABASE.md. Without it, both must be in the same browser on the same device.
+Note: the clock starts at real time. If it is the weekend, only BTCUSD trades. Use Test Lab > Jump to > Mon 15:55 to test the other instruments.
+
+## The Windows .exe (admin plus a client test window)
+The files electron-main.js and package.json turn the admin into a Windows program. You cannot build it on a phone directly, but GitHub can build it for you:
+1. In your repository tap Add file > Create new file. Name it  .github/workflows/build-admin.yml  and paste the text from desktop-build/build-admin.yml.
+2. Also upload package.json and electron-main.js to the repository root.
+3. Open the Actions tab, choose "Build Admin EXE", tap Run workflow, wait a few minutes, then download the .exe from Artifacts.
+I have not been able to run this build myself, so it may need small fixes.
+Easier option on a Windows PC: open admin.html in Edge or Chrome and choose Install app. It behaves like a normal program in the Start menu.
+The .exe opens two windows (Admin and a phone-sized Client) that share data, so it works on a single PC.
+
+## Future live integration
+See ARCHITECTURE-AI.md. It lists what stays the same and what gets swapped (storage, broker connection, clock, price feed).
 
 ---------------------------------------------------------------------
 # Updating the app later
