@@ -1,0 +1,18 @@
+{
+  "name": "investo-kings-admin",
+  "version": "1.0.0",
+  "description": "Investo Kings Admin dashboard (test build, simulation)",
+  "main": "electron-main.js",
+  "author": "Investo Kings",
+  "license": "UNLICENSED",
+  "scripts": { "start": "electron .", "dist": "electron-builder --win --publish never" },
+  "devDependencies": { "electron": "^31.0.0", "electron-builder": "^24.13.3" },
+  "build": {
+    "appId": "com.investokings.admin",
+    "productName": "Investo Kings Admin",
+    "directories": { "output": "dist" },
+    "files": ["electron-main.js","index.html","admin.html","admin.css","admin.js","app.css","core.js","config.js","screens-a.js","screens-b.js","screens-c.js","screens-ai.js","ai-engine.js","ik-sync.js","*.png","*.webmanifest"],
+    "win": { "target": "nsis", "icon": "icon-512.png" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+  }
+}
