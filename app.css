@@ -205,7 +205,7 @@ ul.ins li::before{content:"";position:absolute;left:0;top:9px;width:6px;height:6
 @media (prefers-reduced-motion:reduce){.px.live,.ov .sheet,.ov .dlg{animation:none}}
 
 /* ===== v2: transitions, background, zoom, live bar, flag, risk editor ===== */
-:root{--ease:cubic-bezier(0.4,0,0.2,1);--dur:280ms;--z:1;--grad:linear-gradient(160deg,#0a0d0b 0%,#151917 38%,#101311 62%,#080c09 100%)}
+:root{--ease:cubic-bezier(0.22,0.61,0.36,1);--dur:440ms;--z:1;--grad:linear-gradient(160deg,#0a0d0b 0%,#151917 38%,#101311 62%,#080c09 100%)}
 #app{--bgimg:var(--grad);--bgsize:cover;--bgpos:center}
 #app.bg-map{--bgimg:url(bg-map.png),var(--grad);--bgsize:240% auto,cover;--bgpos:58% 24%,center}
 #app.bg-words{--bgimg:url(bg-words.png),var(--grad);--bgsize:cover,cover;--bgpos:center,center}
@@ -215,9 +215,9 @@ ul.ins li::before{content:"";position:absolute;left:0;top:9px;width:6px;height:6
 #screen,#tabs,#livebar,.ov .pane,.fullscr>*{zoom:var(--z)}
 .ov .pane.nozoom{zoom:1}
 .tag{text-transform:uppercase}
-@keyframes sIn{from{opacity:0;transform:translateX(34px)}to{opacity:1;transform:none}}
-@keyframes sBack{from{opacity:0;transform:translateX(-34px)}to{opacity:1;transform:none}}
-@keyframes sTab{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes sIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+@keyframes sBack{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}
+@keyframes sTab{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 #screen.t-fwd{animation:sIn var(--dur) var(--ease)}
 #screen.t-back{animation:sBack var(--dur) var(--ease)}
 #screen.t-tab{animation:sTab var(--dur) var(--ease)}
@@ -227,15 +227,15 @@ ul.ins li::before{content:"";position:absolute;left:0;top:9px;width:6px;height:6
 @keyframes downOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(42px)}}
 @keyframes popIn{from{opacity:0;transform:translateY(-46%) scale(.95)}to{opacity:1;transform:translateY(-50%) scale(1)}}
 @keyframes popOut{from{opacity:1;transform:translateY(-50%) scale(1)}to{opacity:0;transform:translateY(-54%) scale(.95)}}
-@keyframes fsIn{from{opacity:0;transform:translateX(34px)}to{opacity:1;transform:none}}
+@keyframes fsIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
 .ov .bd{animation:fdIn var(--dur) var(--ease)}
 .ov .sheet{animation:upIn var(--dur) var(--ease)}
 .ov .dlg{animation:popIn var(--dur) var(--ease)}
 .ov .fullscr{animation:fsIn var(--dur) var(--ease)}
-.ov.out .bd{animation:fdOut 250ms var(--ease) forwards}
-.ov.out .sheet{animation:downOut 250ms var(--ease) forwards}
-.ov.out .dlg{animation:popOut 250ms var(--ease) forwards}
-.ov.out .fullscr{animation:fdOut 250ms var(--ease) forwards}
+.ov.out .bd{animation:fdOut 340ms var(--ease) forwards}
+.ov.out .sheet{animation:downOut 340ms var(--ease) forwards}
+.ov.out .dlg{animation:popOut 340ms var(--ease) forwards}
+.ov.out .fullscr{animation:fdOut 340ms var(--ease) forwards}
 @media (prefers-reduced-motion:reduce){#screen.t-fwd,#screen.t-back,#screen.t-tab,.ov .bd,.ov .sheet,.ov .dlg,.ov .fullscr,.ov.out .bd,.ov.out .sheet,.ov.out .dlg,.ov.out .fullscr{animation:none}}
 #tabs button{font-size:10.5px;padding:4px 0;min-width:0}
 #tabs button svg{width:23px;height:23px}
@@ -261,3 +261,7 @@ input[type=range]{accent-color:#39ff14;height:34px}
 #screen.split{display:flex;flex-direction:column;overflow:hidden;padding-bottom:0}
 #screen.split .fixed{flex:0 0 auto}
 #screen.split .scrollarea{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;margin:8px -18px 0;padding:0 18px 18px}
+
+.chip{white-space:nowrap;flex:none}
+.chip.x{width:auto;height:auto;flex:0 0 auto;display:inline-block;border-radius:20px;background:#2a2a2a;color:#aaa}
+.ic.big svg{width:32px;height:32px}

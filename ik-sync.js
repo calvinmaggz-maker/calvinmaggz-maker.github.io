@@ -25,10 +25,10 @@ function trimRes(r){var k=Object.keys(r||{}),o={};k.slice(-40).forEach(function(
 function pushState(force){if(role!=='admin'||SY.blocked||!SY.cfg||busy)return;var s=AI.state();if(!s)return;busy=true;var now=Date.now(),jobs=[];
  var meta={history:s.history||[],schedule:s.schedule||[],notices:(s.notices||[]).slice(-60),extSignals:(s.extSignals||[]).slice(-40),results:trimRes(s.results)},mj=JSON.stringify(meta);
  if(mj!==pushed.meta){pushed.meta=mj;metaRev++;jobs.push(req('PUT','meta',{s:mj,r:metaRev}))}
- var ch={};Object.keys(s.accounts).forEach(function(id){var a=JSON.parse(JSON.stringify(s.accounts[id]));if(a.run&&a.run.trades)a.run.trades=a.run.trades.slice(-8);var j=JSON.stringify(a);if(pushed.acc[id]!==j){pushed.acc[id]=j;accRev[id]=(accRev[id]||0)+1;ch[id]={s:j}}});
+ var ch={};Object.keys(s.accounts).forEach(function(id){var a=JSON.parse(JSON.stringify(s.accounts[id]));if(a.run&&a.run.trades)a.run.trades=a.run.trades.slice(-8);if(a.hold)a.hold={ref:a.hold.ref,at:a.hold.at};var j=JSON.stringify(a);if(pushed.acc[id]!==j){pushed.acc[id]=j;accRev[id]=(accRev[id]||0)+1;ch[id]={s:j}}});
  Object.keys(pushed.acc).forEach(function(id){if(!s.accounts[id]){delete pushed.acc[id];delete accRev[id];ch[id]=null}});
  if(Object.keys(ch).length)jobs.push(req('PATCH','acc',ch));
- if(force||now-lastFull>3000){lastFull=now;jobs.push(req('PUT','full',{s:JSON.stringify(s)}))}
+ if(force||now-lastFull>5000){lastFull=now;jobs.push(req('PUT','full',{s:JSON.stringify(s)}))}
  var live={savedAt:now,simNow:s.simNow,speed:s.speed,px:s.px,usdzar:s.usdzar,mood:s.mood,session:s.session,master:s.master,scen:s.scen,settings:s.settings,metaRev:metaRev,accRev:accRev,v:1};
  Promise.all(jobs).then(function(){return req('PUT','live',{s:JSON.stringify(live)})}).then(ok,fail).then(function(){busy=false})}
 function pullCmds(){if(role!=='admin'||SY.blocked||!SY.cfg)return;req('GET','cmd').then(function(o){if(!o)return;var ks=Object.keys(o),qq=[],del={};try{qq=JSON.parse(localStorage.getItem(CMDK)||'[]')}catch(e){}ks.forEach(function(k){try{qq.push(JSON.parse(o[k].s))}catch(e){}del[k]=null});localStorage.setItem(CMDK,JSON.stringify(qq.slice(-200)));return req('PATCH','cmd',del)}).catch(fail)}
@@ -43,7 +43,7 @@ function startAdmin(){setStatus('connecting','');
   return 'free'}).then(function(st){
    if(st==='busy'){block();return}
    return takeOver(false)}).catch(fail);
- setInterval(function(){pullCmds();pushState();},1000);setInterval(checkLease,3000);setInterval(function(){if(SY.blocked||leaseN<1)return;req('GET','lease').then(function(l){if(l&&l.owner!==DEV){block();return}return req('PUT','lease',{owner:DEV,n:++leaseN})}).catch(fail)},1500)}
+ setInterval(pullCmds,400);setInterval(function(){pushState()},600);setInterval(checkLease,3000);setInterval(function(){if(SY.blocked||leaseN<1)return;req('GET','lease').then(function(l){if(l&&l.owner!==DEV){block();return}return req('PUT','lease',{owner:DEV,n:++leaseN})}).catch(fail)},1500)}
 function takeOver(){return req('GET','full').then(function(f){try{if(f&&f.s){var rs=JSON.parse(f.s),ls=AI.state();if(rs&&rs.v===1&&(!ls||(rs.savedAt||0)>(ls.savedAt||0)||!ls.history||rs.history.length>ls.history.length)){AI.use(rs);AI.save()}}}catch(e){}
   leaseN=0;SY.blocked=false;pushed={meta:'',acc:{}};setStatus('online','');return req('PUT','lease',{owner:DEV,n:++leaseN}).then(function(){pushState(true)})})}
 SY.acts.syncTakeover=function(){takeOver().catch(fail)};
@@ -59,7 +59,7 @@ function pull(){if(pulling)return;pulling=true;
 function startClient(){setStatus('connecting','');
  AI.read=function(){return remote};
  AI.cmd=function(type,p){var id=Date.now()+'-'+Math.random().toString(36).slice(2,6);req('POST','cmd',{s:JSON.stringify({id:id,type:type,p:p||{}})}).catch(fail);return id};
- setInterval(pull,1000);pull()}
+ setInterval(pull,600);pull()}
 /* ================= connect / disconnect (both apps) ================= */
 function rndRoom(){var a='abcdefghijklmnopqrstuvwxyz0123456789',s='';for(var i=0;i<14;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
 SY.connect=function(url,room){url=(url||'').trim().replace(/\/+$/,'');room=(room||'').trim().toLowerCase();

@@ -61,3 +61,4 @@ input[type=checkbox]{width:auto}
 .tag{font-size:10px;letter-spacing:.3em;color:#c9a54a}
 .nowrap{white-space:nowrap}
 .row.tap{cursor:pointer}
+select,textarea{background:#14120a;color:#eee;border:1px solid #6b5a22;border-radius:8px;padding:9px;font:inherit}

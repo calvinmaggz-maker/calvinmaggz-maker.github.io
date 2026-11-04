@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Investo Kings connection check</title>
+<style>body{background:#0b0b0d;color:#eee;font:16px/1.5 system-ui,sans-serif;margin:0;padding:18px}h1{font-size:20px;margin:0 0 4px}.s{color:#9a9a9a;font-size:13px;margin-bottom:14px}.r{padding:10px 12px;border:1px solid #2b2b30;border-radius:10px;margin:8px 0;background:#141417}.ok{border-color:#1f7a3a}.no{border-color:#9a2b2b}.w{border-color:#9a7a1f}.t{font-weight:700}.ok .t{color:#39ff14}.no .t{color:#ff6b6b}.w .t{color:#ffb84d}small{display:block;color:#b8b8b8;margin-top:3px;word-break:break-all}button{width:100%;padding:14px;border-radius:12px;border:0;background:#39ff14;color:#000;font-weight:800;font-size:16px;margin-top:10px}button.l{background:transparent;border:1px solid #39ff14;color:#39ff14}input{width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;margin:4px 0}</style></head><body>
+<h1>Connection check</h1><div class="s">Shows exactly which step is failing. Take a screenshot of this page and send it.</div>
+<div id="out"></div>
+<div class="r"><div class="t">Test other values (optional)</div><input id="u" placeholder="Database address"><input id="rm" placeholder="Room code"><button class="l" onclick="run(true)">Check these values</button></div>
+<button onclick="run()">Run the check again</button>
+<button class="l" onclick="fix()">Clear this app's saved files and reload</button>
+<script>
+var out=document.getElementById('out');
+function add(c,t,d){var e=document.createElement('div');e.className='r '+c;e.innerHTML='<div class="t">'+(c==='ok'?'✓ ':c==='no'?'✗ ':'! ')+t+'</div>'+(d?'<small>'+d+'</small>':'');out.appendChild(e)}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function get(u){return fetch(u,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text()})}
+async function run(manual){out.innerHTML='';var cfg=null;
+ try{cfg=JSON.parse(localStorage.getItem('ik_sync_cfg')||'null')}catch(e){}
+ var q=new URLSearchParams(location.search);if(q.get('db')&&q.get('room'))cfg={url:q.get('db'),room:q.get('room')};
+ if(manual){var u=document.getElementById('u').value.trim(),rm=document.getElementById('rm').value.trim().toLowerCase();if(u&&rm)cfg={url:u.replace(/\/+$/,''),room:rm}}
+ /* 1: app files on the website */
+ var files={'index.html':'ik-sync.js','screens-ai.js':'syncOpen','ik-sync.js':'ik_sync_cfg','sw.js':'ik-cache-v6'};
+ for(var f in files){try{var t=await get(f+'?t='+Date.now());t.indexOf(files[f])>=0?add('ok','Website file is up to date: '+f):add('no','Website file is OLD or wrong: '+f,'Upload the newest '+f+' from the zip to GitHub and commit.')}catch(e){add('no','Website file missing: '+f,e.message+'. Upload it to the main folder of your repository.')}}
+ /* 2: what this phone has saved */
+ try{var ks=await caches.keys();add(ks.some(function(k){return k==='ik-cache-v6'})?'ok':'w','Saved copy on this device: '+(ks.join(', ')||'none'),ks.some(function(k){return k==='ik-cache-v6'})?'':'This device may still use an older saved copy. Tap "Clear this app\'s saved files" below, then open the app again.')}catch(e){add('w','Could not read saved files on this device',e.message)}
+ /* 3: connection settings */
+ if(!cfg){add('no','This device has no database connection saved','Open the app link with ?db=ADDRESS&room=ROOMCODE once, or enter the values below.');return}
+ add('ok','Connection saved on this device','Address: '+cfg.url+'<br>Room code: '+cfg.room.slice(0,4)+'…'+cfg.room.slice(-3)+' ('+cfg.room.length+' characters)');
+ var base=cfg.url.replace(/\/+$/,'')+'/ik_'+cfg.room;
+ /* 4: reach the database */
+ var lease=null;try{var tx=await get(base+'/lease.json');lease=JSON.parse(tx);add('ok','Database reached')}catch(e){add('no','Cannot reach the database',e.message+(/401|403/.test(e.message)?'. The rules were not published. Paste the rules from SETUP-ONLINE-DATABASE.md and tap Publish.':'. Check the address for typing mistakes, and that the phone has internet.'));return}
+ if(!lease){add('no','The database is empty for this room code','The admin is not connected with THIS room code, or the codes differ by a letter. Compare the room code with the one in the admin Settings.');return}
+ add('ok','The admin has used this room','Engine device: '+lease.owner);
+ /* 5: is the admin publishing right now */
+ var a=null,b=null;try{a=JSON.parse(JSON.parse(await get(base+'/live.json')).s);await sleep(2500);b=JSON.parse(JSON.parse(await get(base+'/live.json')).s)}catch(e){add('no','Admin has not published engine data yet',e.message);return}
+ if(a.savedAt===b.savedAt)add('no','Admin engine is NOT running','The admin page is closed, asleep, or showing "another device is running the engine". Open the admin on the PC, keep it in front, and tap Take over if it asks.');
+ else add('ok','Admin engine is running and publishing');
+ add(b.session&&(b.session.state==='ACTIVE'||b.session.state==='ENDING')?'ok':'w','AI session: '+(b.session?b.session.state:'none'),b.session?'':'In the admin tap Activate AI now.');
+ try{var accs=await get(base+'/acc.json');var o=JSON.parse(accs)||{};add('ok','Accounts known to the engine: '+(Object.keys(o).join(', ')||'none'))}catch(e){}
+ add('ok','Everything on the connection side looks fine','If the AI tab still says offline, tap "Clear this app\'s saved files and reload", then open the app and use TEST MODE > Play as Client D.');
+}
+async function fix(){try{var rs=await navigator.serviceWorker.getRegistrations();for(var i=0;i<rs.length;i++)await rs[i].unregister()}catch(e){}try{var ks=await caches.keys();for(var j=0;j<ks.length;j++)await caches.delete(ks[j])}catch(e){}location.href='index.html?r='+Date.now()}
+run();
+</script></body></html>

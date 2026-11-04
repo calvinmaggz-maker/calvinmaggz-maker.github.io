@@ -89,6 +89,7 @@ function render(keepScroll){var top=IK.cur(),s=IK.screens[top.name];if(!s){conso
  if(s.mount)s.mount(el,top.params||{});IK.liveUpdate()}
 IK.refresh=function(){var a=document.activeElement;if(a&&/INPUT|TEXTAREA/.test(a.tagName)&&$('#screen').contains(a)){IK.liveUpdate();return}render(true)};
 window.addEventListener('popstate',function(){
+ if(IK.exiting)return;
  if(overlays.length){IK.closeTop();history.pushState({d:stack.length},'');return}
  if(stack.length>1){IK._dir='back';stack.pop();render();return}
  history.pushState({d:stack.length},'');IK.exitDialog()});
@@ -100,7 +101,7 @@ function open(kind,html,opt){opt=opt||{};var el=document.createElement('div');el
  $('#ovr').appendChild(el);var o={el:el,opt:opt};overlays.push(o);if(opt.mount)opt.mount(el);return o}
 IK.sheet=function(html,opt){return open('sheet',html,opt)};
 IK.dlg=function(html,opt){return open('dlg',html,opt)};
-IK.closeTop=function(){var o=overlays.pop();if(!o)return;o.el.classList.add('out');o.el.style.pointerEvents='none';setTimeout(function(){o.el.remove()},260);if(o.opt.onClose)o.opt.onClose()};
+IK.closeTop=function(){var o=overlays.pop();if(!o)return;o.el.classList.add('out');o.el.style.pointerEvents='none';setTimeout(function(){o.el.remove()},360);if(o.opt.onClose)o.opt.onClose()};
 IK.closeAll=function(){while(overlays.length)IK.closeTop()};
 IK.full=function(html,opt){opt=opt||{};var el=document.createElement('div');el.className='ov';el.style.zIndex=90;el.innerHTML='<div class="fullscr '+(opt.cls||'')+'">'+html+'</div>';$('#ovr').appendChild(el);var o={el:el,opt:{modal:true,onClose:opt.onClose}};overlays.push(o);if(opt.mount)opt.mount(el);return o};
 IK.shead=function(t){return '<div class="sh"><h2>'+IK.esc(t)+'</h2><div class="x" data-close role="button" aria-label="Close">'+IK.I('close',18)+'</div></div>'};
@@ -108,7 +109,7 @@ IK.csheet=function(icon,cls,title,inner,opt){return IK.sheet('<div class="ct"><d
 IK.msg=function(icon,cls,title,text,btn,opt){opt=opt||{};return IK.csheet(icon,cls,title,(text?'<p class="sub">'+text+'</p>':'')+'<a class="btn'+(opt.btnCls?' '+opt.btnCls:'')+'" data-close>'+(btn||'OK')+'</a>')};
 IK.exitDialog=function(){if(overlays.some(function(o){return o.opt.exit}))return;
  IK.dlg('<h2>Exit Investo Kings?</h2><p class="sub mt8">You will not receive trade alerts while the app is closed.</p><a class="btn" data-close>Stay in the app</a><a class="btn red" data-act="exitApp">Exit</a>',{exit:true})};
-IK.acts.exitApp=function(){IK.closeAll();try{window.close()}catch(e){}setTimeout(function(){history.go(-(history.length-1))},150)};
+IK.acts.exitApp=function(){IK.exiting=true;IK.closeAll();try{window.close()}catch(e){}var L=history.length;if(L>1)history.go(-(L-1));setTimeout(function(){try{history.back()}catch(e){}},400);setTimeout(function(){if(document.getElementById('bye'))return;document.body.insertAdjacentHTML('beforeend','<div id="bye" style="position:fixed;inset:0;z-index:99999;background:#070b08;color:#eee;display:grid;place-content:center;text-align:center;font:16px system-ui;padding:30px"><div style="font-size:22px;font-weight:800;margin-bottom:8px">You have exited Investo Kings</div><div style="color:#9a9a9a;line-height:1.5">You can now close this window or switch to another app.</div><a onclick="location.reload()" style="margin-top:22px;color:#39ff14;font-weight:700;cursor:pointer">Return to the app</a></div>')},1300)};
 
 /* ---------- global events ---------- */
 document.addEventListener('click',function(e){
