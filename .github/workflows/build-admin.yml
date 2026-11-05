@@ -1,3 +1,5 @@
+# Put this file in your GitHub repository at:  .github/workflows/build-admin.yml
+# Then open the Actions tab, choose "Build Admin EXE", tap "Run workflow". The .exe appears under Artifacts.
 name: Build Admin EXE
 on:
   workflow_dispatch:
