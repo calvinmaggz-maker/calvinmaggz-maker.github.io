@@ -15,10 +15,10 @@ async function run(manual){out.innerHTML='';var cfg=null;
  var q=new URLSearchParams(location.search);if(q.get('db')&&q.get('room'))cfg={url:q.get('db'),room:q.get('room')};
  if(manual){var u=document.getElementById('u').value.trim(),rm=document.getElementById('rm').value.trim().toLowerCase();if(u&&rm)cfg={url:u.replace(/\/+$/,''),room:rm}}
  /* 1: app files on the website */
- var files={'index.html':'ik-sync.js','screens-ai.js':'syncOpen','ik-sync.js':'ik_sync_cfg','sw.js':'ik-cache-v6'};
+ var files={'index.html':'ik-sync.js','screens-ai.js':'syncOpen','ik-sync.js':'ik_sync_cfg','sw.js':'ik-cache-v7'};
  for(var f in files){try{var t=await get(f+'?t='+Date.now());t.indexOf(files[f])>=0?add('ok','Website file is up to date: '+f):add('no','Website file is OLD or wrong: '+f,'Upload the newest '+f+' from the zip to GitHub and commit.')}catch(e){add('no','Website file missing: '+f,e.message+'. Upload it to the main folder of your repository.')}}
  /* 2: what this phone has saved */
- try{var ks=await caches.keys();add(ks.some(function(k){return k==='ik-cache-v6'})?'ok':'w','Saved copy on this device: '+(ks.join(', ')||'none'),ks.some(function(k){return k==='ik-cache-v6'})?'':'This device may still use an older saved copy. Tap "Clear this app\'s saved files" below, then open the app again.')}catch(e){add('w','Could not read saved files on this device',e.message)}
+ try{var ks=await caches.keys();add(ks.some(function(k){return k==='ik-cache-v7'})?'ok':'w','Saved copy on this device: '+(ks.join(', ')||'none'),ks.some(function(k){return k==='ik-cache-v7'})?'':'This device may still use an older saved copy. Tap "Clear this app\'s saved files" below, then open the app again.')}catch(e){add('w','Could not read saved files on this device',e.message)}
  /* 3: connection settings */
  if(!cfg){add('no','This device has no database connection saved','Open the app link with ?db=ADDRESS&room=ROOMCODE once, or enter the values below.');return}
  add('ok','Connection saved on this device','Address: '+cfg.url+'<br>Room code: '+cfg.room.slice(0,4)+'…'+cfg.room.slice(-3)+' ('+cfg.room.length+' characters)');

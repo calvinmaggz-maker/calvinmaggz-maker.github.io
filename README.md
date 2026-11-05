@@ -154,6 +154,16 @@ The .exe opens two windows (Admin and a phone-sized Client) that share data, so 
 ## Future live integration
 See ARCHITECTURE-AI.md. It lists what stays the same and what gets swapped (storage, broker connection, clock, price feed).
 
+
+---------------------------------------------------------------------
+# NEW in test build 1.4: Compliance (money laundering and identity checks) and account freeze
+- Admin > Compliance: alert queue, client risk table, editable alert rules, editable account levels and limits, reporting reminders, compliance log, CSV export.
+- Admin > Clients: Freeze account (neutral message shown to the client, reason kept internal) and Restore.
+- Client app: account levels with deposit and 1Voucher limits, a clearing period before new deposits can be withdrawn, payments and bank accounts must be in the client's own name.
+- To try it: in the client tap the orange TEST MODE bar, scroll to "Compliance tests", add some test activity, then open Admin > Compliance. Alerts appear within seconds.
+- Alert rules built in: withdrawal without trading, rapid in and out, possible structuring, large single deposit, payment from another person, heavy 1Voucher use, bank account in another name, new account with large deposits, several accounts on one device, many withdrawals.
+- All of this is a TEST version. A real launch needs a licensed identity-verification provider, bank account verification, real transaction monitoring on a secure server, and sign-off from your compliance officer or attorney.
+
 ---------------------------------------------------------------------
 # Updating the app later
 1. Change the files in GitHub (Add file, Upload files, same names replace the old ones).

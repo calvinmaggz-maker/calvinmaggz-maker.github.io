@@ -23,7 +23,7 @@ function wire(){var n=0;return n}
 var pushed={meta:'',acc:{}},metaRev=0,accRev={},lastFull=0,busy=false,leaseN=0,lastLease=0,seenLease={n:null,at:0};
 function trimRes(r){var k=Object.keys(r||{}),o={};k.slice(-40).forEach(function(x){o[x]=r[x]});return o}
 function pushState(force){if(role!=='admin'||SY.blocked||!SY.cfg||busy)return;var s=AI.state();if(!s)return;busy=true;var now=Date.now(),jobs=[];
- var meta={history:s.history||[],schedule:s.schedule||[],notices:(s.notices||[]).slice(-60),extSignals:(s.extSignals||[]).slice(-40),results:trimRes(s.results)},mj=JSON.stringify(meta);
+ var meta={history:s.history||[],schedule:s.schedule||[],notices:(s.notices||[]).slice(-60),extSignals:(s.extSignals||[]).slice(-40),results:trimRes(s.results),comp:s.comp||null},mj=JSON.stringify(meta);
  if(mj!==pushed.meta){pushed.meta=mj;metaRev++;jobs.push(req('PUT','meta',{s:mj,r:metaRev}))}
  var ch={};Object.keys(s.accounts).forEach(function(id){var a=JSON.parse(JSON.stringify(s.accounts[id]));if(a.run&&a.run.trades)a.run.trades=a.run.trades.slice(-8);if(a.hold)a.hold={ref:a.hold.ref,at:a.hold.at};var j=JSON.stringify(a);if(pushed.acc[id]!==j){pushed.acc[id]=j;accRev[id]=(accRev[id]||0)+1;ch[id]={s:j}}});
  Object.keys(pushed.acc).forEach(function(id){if(!s.accounts[id]){delete pushed.acc[id];delete accRev[id];ch[id]=null}});
@@ -55,7 +55,7 @@ function pull(){if(pulling)return;pulling=true;
   var jobs=[],id=myId(),want=L.accRev&&L.accRev[id];
   if(got.meta!==L.metaRev)jobs.push(req('GET','meta').then(function(m){if(m&&m.s){cache.meta=JSON.parse(m.s);got.meta=L.metaRev}}));
   if(want!=null&&got.acc[id]!==want)jobs.push(req('GET','acc/'+id).then(function(a){if(a&&a.s){cache.acc[id]=JSON.parse(a.s);got.acc[id]=want}}));
-  return Promise.all(jobs).then(function(){var m=cache.meta||{},r={v:1,savedAt:recvAt};for(var k in L)r[k]=L[k];r.savedAt=recvAt;r.history=m.history||[];r.schedule=m.schedule||[];r.notices=m.notices||[];r.extSignals=m.extSignals||[];r.results=m.results||{};r.accounts={};if(cache.acc[id]&&(!L.accRev||L.accRev[id]!=null))r.accounts[id]=cache.acc[id];remote=r;ok()})}).catch(fail).then(function(){pulling=false})}
+  return Promise.all(jobs).then(function(){var m=cache.meta||{},r={v:1,savedAt:recvAt};for(var k in L)r[k]=L[k];r.savedAt=recvAt;r.history=m.history||[];r.schedule=m.schedule||[];r.notices=m.notices||[];r.extSignals=m.extSignals||[];r.results=m.results||{};r.comp=m.comp||null;r.accounts={};if(cache.acc[id]&&(!L.accRev||L.accRev[id]!=null))r.accounts[id]=cache.acc[id];remote=r;ok()})}).catch(fail).then(function(){pulling=false})}
 function startClient(){setStatus('connecting','');
  AI.read=function(){return remote};
  AI.cmd=function(type,p){var id=Date.now()+'-'+Math.random().toString(36).slice(2,6);req('POST','cmd',{s:JSON.stringify({id:id,type:type,p:p||{}})}).catch(fail);return id};

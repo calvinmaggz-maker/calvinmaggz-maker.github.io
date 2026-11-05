@@ -149,6 +149,7 @@ function handleCmd(c){var s=S(),p=c.p;
  if(c.type==='register'){var a=s.accounts[p.id];if(!a){a=s.accounts[p.id]=newAcc(p.id,p.name||p.id,p.balance||0,false);a.target=Math.round(a.balance*1.2)}a.verified=!!p.verified;a.agreement=!!p.agreement;if(typeof p.reserved==='number')a.reserved=p.reserved;if(p.control)a.bot=false;if(p.name&&!a.bot)a.name=p.name;if(['RUNNING','STOPPING'].indexOf(a.status)<0&&!a.positions.length&&typeof p.balance==='number'&&!p.skipBalance)a.balance=p.balance;return}
  if(c.type==='reserve'){if(s.accounts[p.id])s.accounts[p.id].reserved=Math.max(0,+p.reserved||0);return}
  if(c.type==='adjust'){var ad=s.accounts[p.id];if(ad&&isFinite(p.delta)){ad.adjIds=ad.adjIds||[];if(ad.adjIds.indexOf(c.id)<0){ad.balance+=+p.delta;if(ad.run)ad.run.startBalance+=+p.delta;ad.adjIds.push(c.id);ad.adjIds=ad.adjIds.slice(-30)}}return}
+ if(c.type==='profile'){var pa=s.accounts[p.id];if(pa){pa.prof={dep:(p.dep||[]).slice(0,40),wd:(p.wd||[]).slice(0,30),trades:p.trades||0,hasTraded:!!p.hasTraded,bank:p.bank||null,attempt:p.attempt||null,third:(p.third||[]).slice(-10),created:p.created||0,device:p.device||'',at:Date.now()}}return}
  if(c.type==='release'){if(s.accounts[p.id])s.accounts[p.id].bot=true;return}
  if(c.type==='start'){var r=AI.start(p.id,p);s.accounts[p.id]&&(s.accounts[p.id].lastResult=r);s.results=s.results||{};s.results[c.id]=r;return}
  if(c.type==='stop'){AI.stop(p.id);return}
@@ -172,4 +173,45 @@ AI.freeze=function(id,o){var s=AI.state(),a=s.accounts[id];if(!a)return {ok:fals
  a.hold={ref:'IK-'+Math.floor(10000+Math.random()*89999),reason:o.reason||'OTHER',note:o.note||'',at:Date.now(),by:o.by||'Admin'};
  s.audit=s.audit||[];s.audit.unshift({t:Date.now(),act:'FREEZE',id:id,name:a.name,reason:a.hold.reason,note:a.hold.note,by:a.hold.by,ref:a.hold.ref,stopped:wasRun&&o.stopAI!==false});s.audit=s.audit.slice(0,300);AI.save();return {ok:true}};
 AI.unfreeze=function(id,note,by){var s=AI.state(),a=s.accounts[id];if(!a||!a.hold)return {ok:false};var ref=a.hold.ref;delete a.hold;s.audit=s.audit||[];s.audit.unshift({t:Date.now(),act:'UNFREEZE',id:id,name:a.name,reason:'',note:note||'',by:by||'Admin',ref:ref});s.audit=s.audit.slice(0,300);AI.save();return {ok:true}};
+})();
+
+/* ---- compliance monitoring ---- */
+(function(){var AI=window.IKAI;
+var DEF={rules:{
+ NO_TRADE:{on:1,sev:'HIGH',name:'Withdrawal without trading',desc:'Withdrawal after a deposit, with no trades placed.',p:{minDeposit:2000}},
+ RAPID:{on:1,sev:'MEDIUM',name:'Rapid in and out',desc:'Withdrawal soon after a large deposit.',p:{hours:24,minAmount:5000}},
+ STRUCT:{on:1,sev:'HIGH',name:'Possible structuring',desc:'Several deposits in a short time that together pass the reporting amount.',p:{count:3,hours:48,total:50000}},
+ LARGE:{on:1,sev:'MEDIUM',name:'Large single deposit',desc:'Deposit at or above this amount. Ask for source of funds.',p:{amount:50000}},
+ NAME:{on:1,sev:'HIGH',name:'Payment from another person',desc:'A payment came from an account not in the client\'s own name.',p:{}},
+ VOUCHER:{on:1,sev:'MEDIUM',name:'Heavy 1Voucher use',desc:'1Voucher deposits in 30 days above this amount.',p:{amount:10000}},
+ BANK:{on:1,sev:'HIGH',name:'Bank account in another name',desc:'Client tried to link a bank account not in their own name.',p:{}},
+ NEWBIG:{on:1,sev:'MEDIUM',name:'New account, large deposits',desc:'Deposits above this amount in the first days.',p:{days:7,amount:20000}},
+ DEVICE:{on:1,sev:'HIGH',name:'Several accounts on one device',desc:'The same device is used by this many accounts.',p:{count:3}},
+ VELOCITY:{on:1,sev:'LOW',name:'Many withdrawals',desc:'Withdrawals in 7 days at or above this count.',p:{count:4}}},
+ tiers:{1:{name:'Tier 1 · ID verified',dep:20000,voucher:5000,wd:50000,hold:72},2:{name:'Tier 2 · Address verified',dep:100000,voucher:10000,wd:200000,hold:48},3:{name:'Tier 3 · Source of funds approved',dep:1000000,voucher:10000,wd:200000,hold:24}}};
+AI.COMP_DEF=DEF;
+AI.comp=function(){var s=AI.state();if(!s.comp)s.comp=JSON.parse(JSON.stringify(DEF));Object.keys(DEF.rules).forEach(function(k){if(!s.comp.rules[k])s.comp.rules[k]=JSON.parse(JSON.stringify(DEF.rules[k]))});if(!s.comp.tiers)s.comp.tiers=JSON.parse(JSON.stringify(DEF.tiers));return s.comp};
+AI.compSave=function(c){var s=AI.state();s.comp=c;AI.save()};
+AI.openCases=function(id){var s=AI.state();return (s.cases||[]).filter(function(x){return x.client===id&&(x.status==='OPEN'||x.status==='IN_REVIEW')})};
+AI.riskOf=function(id){var n=0;AI.openCases(id).forEach(function(x){n+=x.sev==='HIGH'?3:x.sev==='MEDIUM'?2:1});return n>=3?'HIGH':n>=2?'MEDIUM':n>=1?'LOW':'NONE'};
+AI.compScan=function(){var s=AI.state(),C=AI.comp(),now=Date.now(),H=36e5,D=864e5,added=0;s.cases=s.cases||[];s.caseSeq=s.caseSeq||0;
+ function raise(rule,a,key,detail){var R=C.rules[rule];if(!R||!R.on)return;var k=rule+':'+a.id+':'+key;if(s.cases.some(function(x){return x.key===k}))return;s.caseSeq++;s.cases.unshift({id:'C'+s.caseSeq,t:now,rule:rule,sev:R.sev,client:a.id,name:a.name,detail:detail,key:k,status:'OPEN',note:''});added++}
+ function m(v){return 'R '+Math.round(v).toLocaleString('en-ZA')}
+ var devs={};Object.keys(s.accounts).forEach(function(id){var a=s.accounts[id];if(a.prof&&a.prof.device&&!a.bot){(devs[a.prof.device]=devs[a.prof.device]||[]).push(a)}});
+ Object.keys(s.accounts).forEach(function(id){var a=s.accounts[id],f=a.prof;if(!f)return;a.id=a.id||id;var dep=f.dep||[],wd=f.wd||[];
+  wd.forEach(function(w){var before=dep.filter(function(d){return d.t<=w.t});var sum=before.reduce(function(t,d){return t+d.a},0);
+   if(!f.hasTraded&&!f.trades&&sum>=C.rules.NO_TRADE.p.minDeposit)raise('NO_TRADE',a,w.t,'Withdrew '+m(w.a)+' after depositing '+m(sum)+' with no trades placed.');
+   var rp=C.rules.RAPID.p,near=before.filter(function(d){return w.t-d.t<=rp.hours*H&&d.a>=rp.minAmount});if(near.length)raise('RAPID',a,w.t,'Withdrew '+m(w.a)+' within '+rp.hours+' hours of a '+m(near[0].a)+' deposit.')});
+  var sp=C.rules.STRUCT.p;dep.forEach(function(d){var win=dep.filter(function(x){return Math.abs(x.t-d.t)<=sp.hours*H});var tot=win.reduce(function(t,x){return t+x.a},0);if(win.length>=sp.count&&tot>=sp.total&&win.every(function(x){return x.a<sp.total}))raise('STRUCT',a,Math.max.apply(null,win.map(function(x){return x.t})),win.length+' deposits within '+sp.hours+' hours totalling '+m(tot)+', each below '+m(sp.total)+'.')});
+  dep.forEach(function(d){if(d.a>=C.rules.LARGE.p.amount)raise('LARGE',a,d.t,'Single deposit of '+m(d.a)+'. Source of funds needed.')});
+  (f.third||[]).forEach(function(x){raise('NAME',a,x.t,'Payment of '+m(x.a)+' from "'+x.payer+'" was rejected. Client name is "'+a.name+'".')});
+  var v30=dep.filter(function(d){return d.m==='1Voucher'&&now-d.t<=30*D}).reduce(function(t,d){return t+d.a},0);if(v30>=C.rules.VOUCHER.p.amount)raise('VOUCHER',a,'m'+Math.floor(now/(30*D)),'1Voucher deposits of '+m(v30)+' in the last 30 days.');
+  if(f.attempt)raise('BANK',a,f.attempt.t,'Tried to link a bank account held by "'+f.attempt.holder+'". Client name is "'+a.name+'".');
+  var nb=C.rules.NEWBIG.p,age=(now-(f.created||now))/D,dsum=dep.reduce(function(t,d){return t+d.a},0);if(age<=nb.days&&dsum>=nb.amount)raise('NEWBIG',a,'n','Account is '+Math.max(0,Math.floor(age))+' days old with '+m(dsum)+' deposited.');
+  var dv=C.rules.DEVICE.p;if(f.device&&devs[f.device]&&devs[f.device].length>=dv.count)raise('DEVICE',a,f.device,devs[f.device].length+' accounts use the same device ('+devs[f.device].map(function(x){return x.name}).join(', ')+').');
+  var w7=wd.filter(function(w){return now-w.t<=7*D}).length;if(w7>=C.rules.VELOCITY.p.count)raise('VELOCITY',a,'w'+Math.floor(now/(7*D)),w7+' withdrawals in the last 7 days.')});
+ if(added){s.cases=s.cases.slice(0,500);AI.save()}return added};
+AI.caseAct=function(id,act,note,by){var s=AI.state(),c=(s.cases||[]).filter(function(x){return x.id===id})[0];if(!c)return {ok:false};c.status=act==='CLEAR'?'CLEARED':act==='ESCALATE'?'ESCALATED':'IN_REVIEW';c.note=note||c.note;c.by=by||'Admin';c.upd=Date.now();
+ s.audit=s.audit||[];s.audit.unshift({t:Date.now(),act:'CASE',id:c.client,name:c.name,reason:'',note:c.status+' ('+(AI.COMP_DEF.rules[c.rule]?AI.COMP_DEF.rules[c.rule].name:c.rule)+') '+(note||''),by:c.by,ref:c.id});AI.save();return {ok:true}};
+AI.setTier=function(id,t,by){var s=AI.state(),a=s.accounts[id];if(!a)return {ok:false};var o=a.tier||1;a.tier=+t;s.audit=s.audit||[];s.audit.unshift({t:Date.now(),act:'CASE',id:id,name:a.name,reason:'',note:'Account level changed from Tier '+o+' to Tier '+t,by:by||'Admin',ref:''});AI.save();return {ok:true}};
 })();

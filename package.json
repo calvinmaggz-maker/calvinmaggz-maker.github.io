@@ -11,7 +11,7 @@
     "appId": "com.investokings.admin",
     "productName": "Investo Kings Admin",
     "directories": { "output": "dist" },
-    "files": ["electron-main.js","index.html","admin.html","admin.css","admin.js","app.css","core.js","config.js","screens-a.js","screens-b.js","screens-c.js","screens-ai.js","ai-engine.js","ik-sync.js","*.png","*.webmanifest"],
+    "files": ["electron-main.js","index.html","admin.html","admin.css","admin.js","app.css","core.js","config.js","screens-a.js","screens-b.js","screens-c.js","screens-ai.js","screens-comp.js","ai-engine.js","ik-sync.js","*.png","*.webmanifest"],
     "win": { "target": "nsis", "icon": "icon-512.png" },
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
   }
