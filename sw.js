@@ -1,5 +1,5 @@
 /* INVESTO KINGS service worker: offline shell + notification click */
-var CACHE='ik-cache-v7';
+var CACHE='ik-cache-v8';
 var FILES=['./','./index.html','./app.css','./core.js','./config.js','./screens-a.js','./screens-b.js','./screens-c.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-maskable-512.png','./icon-monochrome-512.png','./apple-touch-icon.png','./favicon-48.png','./bg-map.png','./bg-words.png','./ai-engine.js','./ik-sync.js','./screens-ai.js','./screens-comp.js','./admin.html','./admin.css','./admin.js','./admin.webmanifest'];
 self.addEventListener('install',function(e){e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(FILES)}).then(function(){return self.skipWaiting()}))});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!==CACHE}).map(function(k){return caches.delete(k)}))}).then(function(){return self.clients.claim()}))});

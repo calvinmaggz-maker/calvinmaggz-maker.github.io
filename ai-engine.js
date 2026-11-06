@@ -80,7 +80,7 @@ AI.start=function(id,o){var s=S(),a=s.accounts[id];if(!a)return {ok:false,code:'
  var lot=Math.max(.01,Math.round((o.lot||.01)*100)/100);
  var can=open.filter(function(x){return marginZAR(x,.01,s.px[x].mid)*2<a.balance*.4});if(!can.length)return {ok:false,code:'MARGIN',msg:'Your balance cannot safely support the minimum position size.'};
  if(!(o.target>a.balance))return {ok:false,code:'TARGET',msg:'Your target must be above your balance.'};
- a.instruments=open;a.lot=lot;a.perScalp=o.perScalp===4?4:2;a.target=o.target;a.startBalance=a.balance;a.status='RUNNING';a.closing=null;a.ranSession=s.session.id;
+ a.instruments=open;a.lot=lot;a.perScalp=Math.max(2,Math.min(200,Math.round(+o.perScalp||2)));a.target=o.target;a.startBalance=a.balance;a.status='RUNNING';a.closing=null;a.ranSession=s.session.id;
  a.run={sessionId:s.session.id,startBalance:a.balance,target:a.target,startedAt:s.simNow,trades:[],scalps:0,wins:0,losses:0,pnl:0,series:[],endStatus:null};
  logEv(a.name+' started AI (target R'+Math.round(a.target)+')');return {ok:true}};
 AI.stop=function(id){var a=S().accounts[id];if(!a||a.status!=='RUNNING')return false;beginClose(a,'client');return true};
@@ -89,7 +89,7 @@ function beginClose(a,reason){a.closing=reason;a.status=reason==='target'||reaso
 /* ---------- close pipeline ---------- */
 function realize(a,p,exit,why){var s=S();var gross=pnlUSD(p,exit)*s.usdzar,cost=p.lot*s.settings.commissionPerLot*s.usdzar,net=gross-cost;a.balance+=net;
  a.positions=a.positions.filter(function(x){return x!==p});var tr={id:p.id,sym:p.sym,side:p.side,lot:p.lot,entry:p.entry,exit:exit,pnl:net,cost:cost,openedAt:p.openedAt,closedAt:s.simNow,why:why,scalp:p.scalp};
- if(a.run){a.run.trades.push(tr);if(a.run.trades.length>400)a.run.trades.shift();a.run.pnl+=net;if(net>0)a.run.wins++;else a.run.losses++}
+ if(a.run){a.run.trades.push(tr);if(a.run.trades.length>400)a.run.trades.shift();a.run.bySym=a.run.bySym||{};var bs=a.run.bySym[p.sym]=a.run.bySym[p.sym]||{trades:0,wins:0,pnl:0};bs.trades++;if(net>0)bs.wins++;bs.pnl+=net;a.run.pnl+=net;if(net>0)a.run.wins++;else a.run.losses++}
  var st=s.session&&s.session.stats;if(st){st.trades++;if(net>0)st.wins++;else st.losses++}return tr}
 function processCloses(){var s=S();Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];a.positions.slice().forEach(function(p){if(!p.closeReq||s.simNow<p.closeReq.nextAt)return;
  var fail=s.scen.failClose&&!p.manualOK;if(fail){p.closeReq.attempts++;if(p.closeReq.attempts>=s.settings.closeRetries){p.escalated=true;p.closeReq.nextAt=Infinity;if(!p.alerted){p.alerted=true;logEv('CLOSE FAILED '+a.name+' '+p.sym+' #'+p.id+' (3 retries): admin action needed');notice(a.id,'warn','We are finishing your close','One position could not be closed yet. Our team has been alerted and will close it for you.')}}else p.closeReq.nextAt=s.simNow+s.settings.retryGapS*1000;return}
@@ -105,7 +105,7 @@ function finalize(){var s=S();Object.keys(s.accounts).forEach(function(k){var a=
 function endSession(){var s=S(),ses=s.session;ses.state='ENDED';ses.endedAt=s.simNow;var parts=[],tg=0,tp=0;
  Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.run&&a.run.sessionId===ses.id){parts.push({id:a.id,name:a.name,start:a.run.startBalance,final:a.balance,pnl:a.run.pnl,trades:a.run.trades.length,wins:a.run.wins,losses:a.run.losses,scalps:a.run.scalps,target:a.run.target,status:a.run.endStatus});tp+=a.run.pnl;if(a.run.endStatus==='TARGET_REACHED')tg++}
   else if(a.status==='IDLE'&&a.balance<s.settings.minBalance)parts.push({id:a.id,name:a.name,start:a.balance,final:a.balance,pnl:0,trades:0,wins:0,losses:0,scalps:0,status:'NOT_ELIGIBLE',skip:true})});
- var real=parts.filter(function(p){return !p.skip}),st=ses.stats;var bySym={};Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.run&&a.run.sessionId===ses.id)a.run.trades.forEach(function(t){var b=bySym[t.sym]=bySym[t.sym]||{trades:0,wins:0,pnl:0};b.trades++;if(t.pnl>0)b.wins++;b.pnl+=t.pnl})});
+ var real=parts.filter(function(p){return !p.skip}),st=ses.stats;var bySym={};Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.run&&a.run.sessionId===ses.id){if(a.run.bySym){Object.keys(a.run.bySym).forEach(function(sy){var q=a.run.bySym[sy],b=bySym[sy]=bySym[sy]||{trades:0,wins:0,pnl:0};b.trades+=q.trades;b.wins+=q.wins;b.pnl+=q.pnl})}else a.run.trades.forEach(function(t){var b=bySym[t.sym]=bySym[t.sym]||{trades:0,wins:0,pnl:0};b.trades++;if(t.pnl>0)b.wins++;b.pnl+=t.pnl})}});
  var rep={id:ses.id,name:ses.name,date:ses.start,start:ses.activatedAt||ses.start,end:s.simNow,duration:s.simNow-(ses.activatedAt||ses.start),endedBy:ses.endedBy||'EXPIRY',instruments:ses.instruments,customers:real.length,scalps:real.reduce(function(a,p){return a+p.scalps},0),trades:st.trades,wins:st.wins,losses:st.losses,winRate:st.trades?st.wins/st.trades*100:0,targets:tg,pnl:tp,open:0,parts:parts,bySym:bySym,series:s.pnlSeries.slice(),simulated:true};
  s.history.unshift(rep);if(s.history.length>60)s.history.length=60;ses.report=rep.id;logEv('Session '+ses.id+' ENDED');
  notice('all','session','AI session ended','The AI session has ended. See your results in AI Trading.');AI.save()}
@@ -122,7 +122,7 @@ function masterEA(){var s=S(),ses=s.session;if(!ses||ses.state!=='ACTIVE'||s.mas
 function executeSignal(sig){var s=S();Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.status!=='RUNNING'||a.closing||a.positions.length)return;if(a.instruments.indexOf(sig.sym)<0)return;
  var m=AI.metrics(a),mid=s.px[sig.sym].mid,sp=SPEC[sig.sym];
  function safe(n,lot){var req=marginZAR(sig.sym,lot,mid)*n;var risk=sp.sl*sp.contract*lot*n*s.usdzar;return req<=m.free*.4&&risk<=(a.balance-(a.reserved||0))*s.settings.scalpRiskPct/100}
- var n=a.perScalp,lot=a.lot;if(!safe(n,lot)){n=2;if(!safe(n,lot)){lot=.01;if(!safe(n,lot)){logEv(a.name+': skipped '+sig.sym+' (margin/risk)');return}}}
+ var n=a.perScalp,lot=a.lot;if(!safe(n,lot)){var lo=2,hi=n,best=0;while(lo<=hi){var md=(lo+hi)>>1;if(safe(md,lot)){best=md;lo=md+1}else hi=md-1}if(best>=2){n=best;logEv(a.name+': '+sig.sym+' scalp reduced to '+n+' trades to fit balance')}else{n=2;lot=.01;if(!safe(n,lot)){logEv(a.name+': skipped '+sig.sym+' (margin/risk)');return}}}
  for(var i=0;i<n;i++){a.positions.push({id:s.seq.pos++,sym:sig.sym,side:sig.side,lot:lot,entry:sig.entry,tp:sig.tp,sl:sig.sl,openedAt:s.simNow,scalp:sig.scalp,maxHold:sig.expireAt})}
  a.run.scalps++})}
 function monitor(){var s=S();Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];
@@ -141,9 +141,9 @@ AI.step=function(){var s=S();s.simNow+=1000;movePrices();var t=s.simNow;
   if(t-s.master.heartbeat>s.settings.guardianS*1000&&ses.state==='ACTIVE'){logEv('GUARDIAN: master EA silent for '+s.settings.guardianS+'s. Closing everything.');notice('all','warn','Safety stop','The AI engine lost its connection. All positions are being closed.');AI.terminate('GUARDIAN');s.master.down=false}}
  masterEA();monitor();processCloses();finalize();
  if(ses&&(ses.state==='ACTIVE'||ses.state==='ENDING')&&t%30000<1000){var tp=0;Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.run&&a.run.sessionId===ses.id)tp+=a.run.pnl+AI.metrics(a).floating});s.pnlSeries.push([t,tp])}};
-AI.tick=function(){var s=S();if(!s)return;var now=Date.now(),dt=Math.min(now-(AI._last||now),2000);AI._last=now;
+AI.tick=function(){var s=S();if(!s)return;var now=Date.now(),dt=Math.min(now-(AI._last||now),120000);AI._last=now;
  takeCmds().forEach(handleCmd);
- var steps=Math.max(0,Math.round(dt/1000*s.speed));if(s.speed<1){AI._acc=(AI._acc||0)+dt/1000*s.speed;steps=Math.floor(AI._acc);AI._acc-=steps}
+ AI._acc=(AI._acc||0)+dt/1000*s.speed;var steps=Math.min(Math.floor(AI._acc),6000);AI._acc-=Math.floor(AI._acc);
  for(var i=0;i<steps;i++)AI.step();AI.save()};
 function handleCmd(c){var s=S(),p=c.p;
  if(c.type==='register'){var a=s.accounts[p.id];if(!a){a=s.accounts[p.id]=newAcc(p.id,p.name||p.id,p.balance||0,false);a.target=Math.round(a.balance*1.2)}a.verified=!!p.verified;a.agreement=!!p.agreement;if(typeof p.reserved==='number')a.reserved=p.reserved;if(p.control)a.bot=false;if(p.name&&!a.bot)a.name=p.name;if(['RUNNING','STOPPING'].indexOf(a.status)<0&&!a.positions.length&&typeof p.balance==='number'&&!p.skipBalance)a.balance=p.balance;return}
@@ -214,4 +214,9 @@ AI.compScan=function(){var s=AI.state(),C=AI.comp(),now=Date.now(),H=36e5,D=864e
 AI.caseAct=function(id,act,note,by){var s=AI.state(),c=(s.cases||[]).filter(function(x){return x.id===id})[0];if(!c)return {ok:false};c.status=act==='CLEAR'?'CLEARED':act==='ESCALATE'?'ESCALATED':'IN_REVIEW';c.note=note||c.note;c.by=by||'Admin';c.upd=Date.now();
  s.audit=s.audit||[];s.audit.unshift({t:Date.now(),act:'CASE',id:c.client,name:c.name,reason:'',note:c.status+' ('+(AI.COMP_DEF.rules[c.rule]?AI.COMP_DEF.rules[c.rule].name:c.rule)+') '+(note||''),by:c.by,ref:c.id});AI.save();return {ok:true}};
 AI.setTier=function(id,t,by){var s=AI.state(),a=s.accounts[id];if(!a)return {ok:false};var o=a.tier||1;a.tier=+t;s.audit=s.audit||[];s.audit.unshift({t:Date.now(),act:'CASE',id:id,name:a.name,reason:'',note:'Account level changed from Tier '+o+' to Tier '+t,by:by||'Admin',ref:''});AI.save();return {ok:true}};
+})();
+
+/* ---- how many trades per scalp the balance can carry ---- */
+(function(){var AI=window.IKAI;
+AI.maxTrades=function(avail,ins,lot){var s=AI.state(),best=200,by='';(ins||[]).forEach(function(sym){var sp=AI.SPEC[sym];if(!sp||!s.px||!s.px[sym])return;var m1=AI.estMargin(sym,lot)*(lot>0?1:0);var r1=sp.sl*sp.contract*lot*s.usdzar;var byM=m1>0?Math.floor(avail*.4/m1):200,byR=r1>0?Math.floor(avail*s.settings.scalpRiskPct/100/r1):200,n=Math.max(0,Math.min(byM,byR));if(n<best){best=n;by=sym}});return {n:Math.min(200,best),by:by}};
 })();

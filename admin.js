@@ -92,7 +92,7 @@ pages['ai:schedule']=function(s){var list=s.schedule.slice().sort(function(a,b){
 
 pages['ai:clients']=function(s){var accs=Object.keys(s.accounts).map(function(k){return s.accounts[k]}),a=s.accounts[P.client]||accs[0],m=AI.metrics(a);
  var rows=accs.map(function(x){return {_a:'data-act="selClient" data-arg="'+x.id+'"',cells:[x.name,money(x.balance),money(AI.metrics(x).equity),x.run?money(x.run.target,0):'—',accChip(x,s)]}});
- var pos=a.positions.map(function(p){var ex=p.side==='BUY'?s.px[p.sym].mid-AI.SPEC[p.sym].spread/2:s.px[p.sym].mid+AI.SPEC[p.sym].spread/2;var pl=(p.side==='BUY'?ex-p.entry:p.entry-ex)*AI.SPEC[p.sym].contract*p.lot*s.usdzar;return {cells:[p.sym,'<b class="'+(p.side==='BUY'?'pos':'neg')+'">'+p.side+'</b>',p.lot,num(p.entry,AI.SPEC[p.sym].dig),num(ex,AI.SPEC[p.sym].dig),'<b class="'+(pl>=0?'pos':'neg')+'">'+sgn(pl)+'</b>'+(p.escalated?' '+chip('FAILED','r'):'')]}});
+ var pos=a.positions.slice(0,30).map(function(p){var ex=p.side==='BUY'?s.px[p.sym].mid-AI.SPEC[p.sym].spread/2:s.px[p.sym].mid+AI.SPEC[p.sym].spread/2;var pl=(p.side==='BUY'?ex-p.entry:p.entry-ex)*AI.SPEC[p.sym].contract*p.lot*s.usdzar;return {cells:[p.sym,'<b class="'+(p.side==='BUY'?'pos':'neg')+'">'+p.side+'</b>',p.lot,num(p.entry,AI.SPEC[p.sym].dig),num(ex,AI.SPEC[p.sym].dig),'<b class="'+(pl>=0?'pos':'neg')+'">'+sgn(pl)+'</b>'+(p.escalated?' '+chip('FAILED','r'):'')]}});
  var h=title('Active Clients','All clients and their AI status',btn(I('dl',14)+' Export CSV','exportClients',null,'line sm'));
  h+='<div style="display:grid;grid-template-columns:minmax(0,540px) minmax(0,1fr);gap:12px;margin-top:12px"><div class="card"><div class="tb" style="margin-bottom:8px">'+btn('Select a row for details','noop',null,'line sm')+'</div>'+table(['Client','Balance','Equity','Target','Status'],rows)+'</div>'
  +'<div class="card" style="border-color:var(--gold)"><div style="display:flex;justify-content:space-between;align-items:center"><h3>'+esc(a.name)+' '+accChip(a,s)+(a.hold?' '+chip('FROZEN','r'):'')+'</h3><div style="display:flex;gap:6px">'+(a.status==='RUNNING'?btn('Stop AI for this client','stopClient',a.id,'red sm'):'')+holdBtn(a)+'</div></div>'
@@ -228,6 +228,7 @@ var acts={
 function dl(name,text){var b=new Blob([text],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},300)}
 document.addEventListener('click',function(e){var n=e.target.closest('[data-nav]');if(n){P.page=n.dataset.nav;P.sub=n.dataset.sub||null;render(true);return}var a=e.target.closest('[data-act]');if(a){var f=acts[a.dataset.act]||xacts[a.dataset.act]||(window.IKSYNC&&IKSYNC.acts[a.dataset.act]);if(f)f(a.dataset.arg,a)}});
 document.addEventListener('change',function(e){var c=e.target.closest('[data-change]');if(c&&c.dataset.change==='repSel'){P.report=c.value;render(true)}});
-setInterval(function(){if(!(window.IKSYNC&&IKSYNC.blocked)){AI.tick();if(Date.now()-(window._lastScan||0)>3000){window._lastScan=Date.now();AI.compScan()}}if(P.authed)render()},500);
+var _loop=function(){if(!(window.IKSYNC&&IKSYNC.blocked)){AI.tick();if(Date.now()-(window._lastScan||0)>3000){window._lastScan=Date.now();AI.compScan()}}if(P.authed)render()};
+(window.IKSYNC&&IKSYNC.every?IKSYNC.every(_loop,500):setInterval(_loop,500));
 window.IKADMIN={acts:acts,P:P,render:render};render(true);
 })();
