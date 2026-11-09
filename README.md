@@ -178,3 +178,10 @@ See ARCHITECTURE-AI.md. It lists what stays the same and what gets swapped (stor
 
 # What this build is NOT
 No real accounts, money, bank, 1Voucher, ID check or trading platform is connected. Data lives only on your phone. Before a real launch you need a backend, a KYC provider, payment handling, your trading platform link, and a compliance review.
+
+---------------------------------------------------------------------
+# Test build 1.5: stability and flexible scalps
+- Trades per scalp can now be any number from 2 to 200. The app shows how many your balance can carry. AI reduces a scalp automatically if it would exceed your margin or risk limits.
+- The engine clock now follows real time at normal speed, so countdowns tick once per second.
+- The phone stays connected while the database is slow. Keep the Admin window open on the PC and do not let the PC sleep.
+- After you stop AI the status shows RUN COMPLETED. AI cannot restart in the same session.
