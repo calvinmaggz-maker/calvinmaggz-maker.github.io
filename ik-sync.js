@@ -5,7 +5,7 @@
 var AI=window.IKAI;if(!AI)return;
 var role=/admin/i.test(location.pathname)?'admin':'client',CFGK='ik_sync_cfg',CMDK='ik_ai_cmd_v1';
 var DEV=localStorage.getItem('ik_dev')||(function(){var d='d'+Math.random().toString(36).slice(2,9);try{localStorage.setItem('ik_dev',d)}catch(e){}return d})();
-var SY=window.IKSYNC={role:role,dev:DEV,cfg:null,status:'off',msg:'Not connected',blocked:false,lastOk:0,acts:{},onChange:null};
+var SY=window.IKSYNC={mt5:{data:null,hb:null,at:0,err:''},role:role,dev:DEV,cfg:null,status:'off',msg:'Not connected',blocked:false,lastOk:0,acts:{},onChange:null};
 function validUrl(u){return /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.(firebaseio\.com|firebasedatabase\.app)\/?$/i.test(u)||/^http:\/\/localhost:\d+\/?$/.test(u)}
 function validRoom(r){return /^[a-z0-9]{10,40}$/.test(r)}
 function loadCfg(){try{var c=JSON.parse(localStorage.getItem(CFGK)||'null');return c&&validUrl(c.url)&&validRoom(c.room)?c:null}catch(e){return null}}
@@ -44,7 +44,8 @@ function checkLease(){if(role!=='admin'||!SY.cfg)return;req('GET','lease').then(
  if(!SY.blocked){return}
  else{if(seenLease.n!==l.n){seenLease={n:l.n,at:Date.now()}}else if(Date.now()-seenLease.at>9000){/* other engine silent: free to take over */setStatus('blocked','Other device stopped. You can take over.')}}}).catch(fail)}
 function block(){SY.blocked=true;setStatus('blocked','');if(SY.onChange)SY.onChange()}
-function startAdmin(){setStatus('connecting','');
+SY.mt5={data:null,hb:null,at:0,err:''};
+function startAdmin(){setStatus('connecting','');SY.every(function(){if(!SY.cfg)return;req('GET','mt5').then(function(d){if(!d){SY.mt5.data=null;return}if(d.hb!==SY.mt5.hb){SY.mt5.hb=d.hb;SY.mt5.at=Date.now()}SY.mt5.data=d;SY.mt5.err=''}).catch(function(e){SY.mt5.err=(e&&e.message)||'error'})},2000);
  req('GET','lease').then(function(l){
   if(l&&l.owner!==DEV){seenLease={n:l.n,at:Date.now()};return new Promise(function(res){setTimeout(function(){req('GET','lease').then(function(l2){res(l2&&l2.owner!==DEV&&l2.n!==l.n?'busy':'free')}).catch(function(){res('free')})},4500)})}
   return 'free'}).then(function(st){

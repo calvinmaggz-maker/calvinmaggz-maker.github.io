@@ -78,9 +78,11 @@ AI.start=function(id,o){var s=S(),a=s.accounts[id];if(!a)return {ok:false,code:'
  var open=(o.instruments||[]).filter(function(x){return s.session.instruments.indexOf(x)>=0&&AI.instrumentOpen(x,s.simNow)});
  if(!open.length)return {ok:false,code:'INSTR',msg:'None of your instruments are open right now.'};
  var lot=Math.max(.01,Math.round((o.lot||.01)*100)/100);
+ var rp=o.riskPct?Math.max(.1,Math.min(s.settings.scalpRiskPct,+o.riskPct)):null;
+ if(rp){var pls=AI.riskPlan(a.balance-(a.reserved||0),open,Math.max(2,Math.min(200,Math.round(+o.perScalp||2))),rp).filter(function(x){return !x.skip});if(!pls.length){var mn=Math.min.apply(null,AI.riskPlan(a.balance-(a.reserved||0),open,2,rp).map(function(x){return x.minPct}));return {ok:false,code:'RISK',msg:'Your risk percentage is too small for the smallest trade size. Raise it to at least '+mn.toFixed(1)+'%.'}}}
  var can=open.filter(function(x){return marginZAR(x,.01,s.px[x].mid)*2<a.balance*.4});if(!can.length)return {ok:false,code:'MARGIN',msg:'Your balance cannot safely support the minimum position size.'};
  if(!(o.target>a.balance))return {ok:false,code:'TARGET',msg:'Your target must be above your balance.'};
- a.instruments=open;a.lot=lot;a.perScalp=Math.max(2,Math.min(200,Math.round(+o.perScalp||2)));a.target=o.target;a.startBalance=a.balance;a.status='RUNNING';a.closing=null;a.ranSession=s.session.id;
+ a.instruments=open;a.lot=lot;a.riskPct=rp;a.perScalp=Math.max(2,Math.min(200,Math.round(+o.perScalp||2)));a.target=o.target;a.startBalance=a.balance;a.status='RUNNING';a.closing=null;a.ranSession=s.session.id;
  a.run={sessionId:s.session.id,startBalance:a.balance,target:a.target,startedAt:s.simNow,trades:[],scalps:0,wins:0,losses:0,pnl:0,series:[],endStatus:null};
  logEv(a.name+' started AI (target R'+Math.round(a.target)+')');return {ok:true}};
 AI.stop=function(id){var a=S().accounts[id];if(!a||a.status!=='RUNNING')return false;beginClose(a,'client');return true};
@@ -122,7 +124,7 @@ function masterEA(){var s=S(),ses=s.session;if(!ses||ses.state!=='ACTIVE'||s.mas
 function executeSignal(sig){var s=S();Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.status!=='RUNNING'||a.closing||a.positions.length)return;if(a.instruments.indexOf(sig.sym)<0)return;
  var m=AI.metrics(a),mid=s.px[sig.sym].mid,sp=SPEC[sig.sym];
  function safe(n,lot){var req=marginZAR(sig.sym,lot,mid)*n;var risk=sp.sl*sp.contract*lot*n*s.usdzar;return req<=m.free*.4&&risk<=(a.balance-(a.reserved||0))*s.settings.scalpRiskPct/100}
- var n=a.perScalp,lot=a.lot;if(!safe(n,lot)){var lo=2,hi=n,best=0;while(lo<=hi){var md=(lo+hi)>>1;if(safe(md,lot)){best=md;lo=md+1}else hi=md-1}if(best>=2){n=best;logEv(a.name+': '+sig.sym+' scalp reduced to '+n+' trades to fit balance')}else{n=2;lot=.01;if(!safe(n,lot)){logEv(a.name+': skipped '+sig.sym+' (margin/risk)');return}}}
+ var n=a.perScalp,lot=a.lot;if(a.riskPct){var pl=AI.riskPlan(a.balance-(a.reserved||0),[sig.sym],n,a.riskPct)[0];if(!pl||pl.skip){logEv(a.name+': skipped '+sig.sym+' (risk amount too small for the minimum lot)');return}n=pl.n;lot=pl.lot;var tr_=0;while(!safe(n,lot)&&tr_<8){tr_++;if(lot>.01){lot=Math.max(.01,Math.floor(lot*75)/100)}else if(n>2){n=Math.max(2,Math.floor(n*.75))}else break}if(!safe(n,lot)){logEv(a.name+': skipped '+sig.sym+' (margin)');return}if(n<a.perScalp||pl.n<a.perScalp)logEv(a.name+': '+sig.sym+' scalp '+n+' trades x '+lot.toFixed(2)+' lot (risk '+a.riskPct+'%)')}else if(!safe(n,lot)){var lo=2,hi=n,best=0;while(lo<=hi){var md=(lo+hi)>>1;if(safe(md,lot)){best=md;lo=md+1}else hi=md-1}if(best>=2){n=best;logEv(a.name+': '+sig.sym+' scalp reduced to '+n+' trades to fit balance')}else{n=2;lot=.01;if(!safe(n,lot)){logEv(a.name+': skipped '+sig.sym+' (margin/risk)');return}}}
  for(var i=0;i<n;i++){a.positions.push({id:s.seq.pos++,sym:sig.sym,side:sig.side,lot:lot,entry:sig.entry,tp:sig.tp,sl:sig.sl,openedAt:s.simNow,scalp:sig.scalp,maxHold:sig.expireAt})}
  a.run.scalps++})}
 function monitor(){var s=S();Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];
@@ -219,4 +221,9 @@ AI.setTier=function(id,t,by){var s=AI.state(),a=s.accounts[id];if(!a)return {ok:
 /* ---- how many trades per scalp the balance can carry ---- */
 (function(){var AI=window.IKAI;
 AI.maxTrades=function(avail,ins,lot){var s=AI.state(),best=200,by='';(ins||[]).forEach(function(sym){var sp=AI.SPEC[sym];if(!sp||!s.px||!s.px[sym])return;var m1=AI.estMargin(sym,lot)*(lot>0?1:0);var r1=sp.sl*sp.contract*lot*s.usdzar;var byM=m1>0?Math.floor(avail*.4/m1):200,byR=r1>0?Math.floor(avail*s.settings.scalpRiskPct/100/r1):200,n=Math.max(0,Math.min(byM,byR));if(n<best){best=n;by=sym}});return {n:Math.min(200,best),by:by}};
+})();
+
+/* ---- size a scalp from a risk percentage ---- */
+(function(){var AI=window.IKAI;
+AI.riskPlan=function(avail,ins,per,pct){var s=AI.state(),out=[];(ins||[]).forEach(function(sym){var sp=AI.SPEC[sym];if(!sp)return;var r1=sp.sl*sp.contract*s.usdzar,budget=avail*pct/100,n=per,lot=budget/(n*r1);lot=Math.floor(lot*100+1e-9)/100;var skip=false;if(lot<.01){lot=.01;n=Math.floor(budget/(r1*.01));if(n<2){skip=true;n=0}}if(lot>100)lot=100;out.push({sym:sym,lot:lot,n:n,budget:budget,minPct:avail>0?(2*r1*.01)/avail*100:999,skip:skip})});return out};
 })();

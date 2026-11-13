@@ -185,3 +185,15 @@ No real accounts, money, bank, 1Voucher, ID check or trading platform is connect
 - The engine clock now follows real time at normal speed, so countdowns tick once per second.
 - The phone stays connected while the database is slow. Keep the Admin window open on the PC and do not let the PC sleep.
 - After you stop AI the status shows RUN COMPLETED. AI cannot restart in the same session.
+
+---------------------------------------------------------------------
+# Test build 1.6: MT5 bridge, step 1 (read-only)
+- Admin > MT5 Broker shows your MT5 demo account live (balance, equity, prices, spreads, open positions).
+- The MT5 program is in the mt5 folder: IK_Bridge_Reader.mq5. Setup steps are in MT5-BRIDGE-SETUP.md.
+- It reads only. It places no trades and refuses to run on a real account.
+
+---------------------------------------------------------------------
+# Test build 1.7: risk percentage instead of lot size
+- When a client starts AI they now choose a risk percentage of their available balance (for example 1% or 2%) and the number of trades per scalp. The engine works out the lot size for each trade from the stop-loss distance. This matches how a percentage-risk EA behaves.
+- The app shows the risk amount in rand, how many trades of what lot size each instrument will use, and warns when the amount is too small for the smallest lot.
+- The admin can cap the maximum risk percentage in AI Trading > Settings (default 8%).
