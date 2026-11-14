@@ -47,7 +47,7 @@ function pushData(){if(role!=='admin'||SY.blocked||!SY.cfg||busyD)return;var s=A
  if(Object.keys(ch).length)jobs.push(req('PATCH','acc',ch).then(function(){Object.keys(info).forEach(function(id){var ci=info[id];if(ci){pushed.acc[id]=ci.j;accRev[id]=ci.r;okRev.acc[id]=ci.r}else{delete pushed.acc[id];delete accRev[id];delete okRev.acc[id]}})}));
  Promise.all(jobs).then(ok,fail).then(function(){busyD=false})}
 function pushLive(){if(role!=='admin'||SY.blocked||!SY.cfg||busyL)return;var s=AI.state();if(!s)return;busyL=true;
- var live={savedAt:Date.now(),simNow:s.simNow,speed:s.speed,px:s.px,usdzar:s.usdzar,mood:s.mood,session:s.session,master:s.master,scen:s.scen,settings:s.settings,ctlView:s.ctlView,metaRev:okRev.meta,accRev:okRev.acc,v:1};
+ var live={savedAt:Date.now(),simNow:s.simNow,speed:s.speed,px:s.px,usdzar:s.usdzar,mood:s.mood,session:s.session,master:s.master,scen:s.scen,settings:s.settings,ctlView:s.ctlView,prices:s.prices,metaRev:okRev.meta,accRev:okRev.acc,v:1};
  req('PUT','live',{s:JSON.stringify(live)}).then(ok,fail).then(function(){busyL=false})}
 function pushFull(force){if(role!=='admin'||SY.blocked||!SY.cfg||busyF)return;var now=Date.now();if(!force&&now-lastFull<20000)return;busyF=true;lastFull=now;req('PUT','full',{s:JSON.stringify(AI.state())}).catch(fail).then(function(){busyF=false})}
 function pushState(force){pushData();pushLive();pushFull(force)}
@@ -60,7 +60,7 @@ function block(){SY.blocked=true;setStatus('blocked','');if(SY.onChange)SY.onCha
 SY.mt5={data:null,hb:null,at:0,err:''};
 var lastPushed=null;
 function startAdmin(){setStatus('connecting','');
- AI.hooks.pushCmd=function(cmd,cb){var key=SY.key();if(!key||key.length<12)return cb(false,'Set the MT5 control key (at least 12 characters) on the MT5 Broker page.');if(!SY.cfg||SY.blocked)return cb(false,'No database connection.');var o={id:cmd.id,type:cmd.type,at:cmd.at,by:cmd.by,status:'PENDING'};o.sig=sha256(key+'|'+o.id+'|'+o.type+'|'+o.at+'|'+o.by);lastPushed=o;req('PUT','mt5cmd/current',o).then(function(){cb(true)},function(e){cb(false,(e&&e.message)||'Send failed')})};
+ AI.hooks.pushCmd=function(cmd,cb){var key=SY.key();if(!key||key.length<12)return cb(false,'Set the MT5 control key (at least 12 characters) on the MT5 Broker page.');if(!SY.cfg||SY.blocked)return cb(false,'No database connection.');var o={id:cmd.id,type:cmd.type,at:cmd.at,by:cmd.by,ins:(cmd.ins||[]).join(','),status:'PENDING'};o.sig=sha256(key+'|'+o.id+'|'+o.type+'|'+o.at+'|'+o.by+'|'+o.ins);lastPushed=o;req('PUT','mt5cmd/current',o).then(function(){cb(true)},function(e){cb(false,(e&&e.message)||'Send failed')})};
  AI.hooks.resend=function(){if(lastPushed)req('PUT','mt5cmd/current',lastPushed).catch(fail)};
  SY.every(function(){if(SY.blocked||!SY.cfg)return;req('GET','mt5cmd/current').then(function(o){if(o&&o.id&&o.status&&o.status!=='PENDING')AI.cmdAck(o.id,o.status,o.err)}).catch(function(){})},700);SY.every(function(){if(!SY.cfg)return;req('GET','mt5').then(function(d){if(!d){SY.mt5.data=null;return}if(d.hb!==SY.mt5.hb){SY.mt5.hb=d.hb;SY.mt5.at=Date.now()}SY.mt5.data=d;SY.mt5.err=''}).catch(function(e){SY.mt5.err=(e&&e.message)||'error'})},2000);
  req('GET','lease').then(function(l){

@@ -42,6 +42,7 @@ function holdCheck(){var s=S(),a=acc();if(!a)return;
  if(a.hold){if(!s.frozen||s.frozen.ref!==a.hold.ref){s.frozen={ref:a.hold.ref,at:a.hold.at};IK.save();IK.closeAll()}if(IK.cur().name!=='frozen')IK.go('frozen',{},{reset:true})}
  else if(s.frozen&&ENG){s.frozen=null;IK.save();IK.notify('account','Account restored','Your account is active again. You can use Investo Kings as normal.',{kind:'ai'});IK.go('dashboard',{},{reset:true})}}
 function poll(){var s=S();if(!s)return;var raw=AIE.read();ST=raw;ENG=!!raw&&(Date.now()-(raw.savedAt||0)<20000);if(raw)AIE.use(raw);
+ IK.pxFeed=IK.pxFeed||{};IK.pxSrc=IK.pxSrc||{};['XAUUSD','XAGUSD'].forEach(function(k){var q=ENG&&ST&&ST.prices&&ST.prices[k];if(q){IK.pxFeed[k]=true;IK.pxSrc[k]=q.src;IK.px[k]=+((q.bid+q.ask)/2).toFixed(AIE.SPEC[k].dig>3?3:2)}else{IK.pxFeed[k]=false;IK.pxSrc[k]='SIM'}});
  if(raw&&s.user&&s.loggedIn){holdCheck();sync();register();reserveSync();notices();extSignals();transitions()}
  var cur=IK.cur().name,key=[acc()&&acc().status,liveSes()&&liveSes().state,liveSes()&&liveSes().dir,ENG,(cv()&&cv().ea),acc()&&Math.round(acc().balance)].join('|');
  if(['ai','aihistory','aisession'].indexOf(cur)>=0)IK.refresh();else if(cur==='dashboard'&&key!==poll._k)IK.refresh();poll._k=key;
@@ -60,7 +61,9 @@ function uiState(){var a=acc(),l=liveSes(),c=cv();
  return 'WAITING FOR ADMIN'}
 function statusChip(){var u=uiState(),cls={'TRADING':'g','BUY MODE ACTIVE':'g','SELL MODE ACTIVE':'g','STOPPING':'o','WAITING FOR ADMIN':'o','OFFLINE':'x','SESSION ENDED':'x'}[u]||'x';return IK.chip(u,cls)}
 function dirBanner(se){var d=se&&se.dir,col=d==='SELL'?'#ff6b6b':'#39ff14';return '<div class="card" style="text-align:center;border-color:'+col+'"><div class="sub" style="margin:0;letter-spacing:.1em;font-size:12px">TRADING DIRECTION</div><div style="font-size:34px;font-weight:800;color:'+col+';line-height:1.2">'+(d||'—')+' MODE</div><div class="sub" style="margin:4px 0 0;font-size:13px">AI opens '+(d||'')+' scalps only. Opposite entries are blocked.</div></div>'}
-function statusPanel(){var c=cv(),l=liveSes(),a=acc(),open=AIE.INSTRUMENTS.filter(function(i){return AIE.instrumentOpen(i,est())}),d=l&&l.dir;
+function pricesPanel(){if(!ST||!ST.prices||!ENG)return '';return '<div class="sec">Live prices</div><div class="card">'+AIE.INSTRUMENTS.map(function(k){var q=ST.prices[k];if(!q)return '';var dg=AIE.SPEC[k].dig;return '<div class="row"><span style="color:#fff"><b>'+k+'</b><small>'+AIE.SPEC[k].name+'</small></span><b style="text-align:right">'+q.bid.toFixed(dg)+' / '+q.ask.toFixed(dg)+'<br>'+IK.chip(q.src==='MT5'?'MT5 LIVE':'SIMULATED',q.src==='MT5'?'g':'o')+'</b></div>'}).join('')+'</div>'}
+function statusPanel(){return statusPanel0()+pricesPanel()}
+function statusPanel0(){var c=cv(),l=liveSes(),a=acc(),open=((l&&l.instruments)?l.instruments:AIE.INSTRUMENTS).filter(function(i){return AIE.instrumentOpen(i,est())}),d=l&&l.dir;
  var ea=!ENG?'Unavailable':c?({CONNECTED:'Connected',SIMULATED:'Connected',DISCONNECTED:'Disconnected'})[c.ea]||'Unknown':'Unknown',mt=!ENG?'Unavailable':c?({CONNECTED:'Connected',DISCONNECTED:'Disconnected','NOT USED':'Simulation mode'})[c.mt5]||'Unknown':'Unknown';
  function row(k,v){return '<div class="row"><span>'+k+'</span><b>'+v+'</b></div>'}
  var act=a&&busy()?'You are trading':l&&l.state==='ACTIVE'?'Open. Press START AI to take part':'Not trading';
@@ -108,8 +111,8 @@ function monitor(a,se){var stopping0=uiStopping(a),m=AIE.metrics(a),run=a.run,pr
  if(!stopping)h+='<a class="btn red" data-act="aiStopAsk">STOP AI</a><p class="sub center" style="font-size:12.5px">Stopping closes all your AI positions.</p>';return h}
 IK.screens.ai={tab:'ai',render:function(){var a=acc(),se=liveSes();
  if(!ST||!a)return offline();
- if(busy())return monitor(a,se);
- if(se)return setup(a,se);
+ if(busy())return monitor(a,se)+pricesPanel();
+ if(se)return setup(a,se)+pricesPanel();
  return offline()}};
 /* ---------- history ---------- */
 IK.screens.aihistory={render:function(){var hs=(ST&&ST.history)||[];var h=IK.hdr('Trading history');if(!hs.length)return h+'<div class="empty"><div class="ci">'+I('clock')+'</div><h2>No sessions yet</h2><p class="sub">Your trading results will appear here after your first AI session.</p></div>';

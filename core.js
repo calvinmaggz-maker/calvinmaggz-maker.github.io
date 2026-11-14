@@ -171,7 +171,7 @@ IK.payWithdrawal=function(w){w.status='paid';w.paidAt=Date.now();IK.S.withdrawnT
 
 /* ---------- ticking ---------- */
 IK.tick=function(){var s=IK.S;if(!s)return;var t=Date.now(),ch=false;
- for(var k in IK.px){var v=IK.SYM[k].vol;IK.px[k]=+(IK.px[k]+(Math.random()-.5)*2*v).toFixed(2)}
+ for(var k in IK.px){if(IK.pxFeed&&IK.pxFeed[k])continue;var v=IK.SYM[k].vol;IK.px[k]=+(IK.px[k]+(Math.random()-.5)*2*v).toFixed(2)}
  s.trades.forEach(function(tr){if(tr.status!=='running')return;var p=IK.px[tr.symbol],tp=tr.side==='BUY'?p>=tr.tp:p<=tr.tp,sl=tr.side==='BUY'?p<=tr.sl:p>=tr.sl;if(tp||sl){IK.closeTrade(tr,tp?'tp':'sl');ch=true}});
  s.alerts.forEach(function(a){if(a.state==='open'&&t>=a.expiresAt){a.state='missed';IK.onAlertMissed(a);ch=true}});
  s.crowd.forEach(function(c){if(c.status!=='running')return;var p=IK.px[c.symbol],tp=c.side==='BUY'?p>=c.tp:p<=c.tp,sl=c.side==='BUY'?p<=c.sl:p>=c.sl;if(tp||sl){c.status='closed';ch=true}});

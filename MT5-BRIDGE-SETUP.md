@@ -26,7 +26,7 @@ You need: the online database already connected (see SETUP-ONLINE-DATABASE.md), 
 4. Tap OK.
 
 ## 5. Start it
-1. Open any chart, for example XAUUSDm.
+1. Open an extra chart for the bridge, for example XAUUSDm. If your own EA is already on a chart, do not use that chart, because MT5 allows only one EA per chart.
 2. Drag IK_Bridge_Reader from the Navigator onto the chart.
 3. In the Inputs tab set:
    - DbUrl: your database address

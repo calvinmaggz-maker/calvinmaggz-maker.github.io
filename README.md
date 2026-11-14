@@ -204,3 +204,13 @@ No real accounts, money, bank, 1Voucher, ID check or trading platform is connect
 - Admin > AI Trading Control: ACTIVATE, STOP, CLOSE ALL, EMERGENCY STOP, command tracking (PENDING, SENT, RECEIVED, EXECUTED, FAILED) and separate simulated and MT5 data.
 - Client app statuses: OFFLINE, WAITING FOR ADMIN, BUY MODE ACTIVE, SELL MODE ACTIVE, TRADING, STOPPING, SESSION ENDED.
 - MT5 files are in the mt5 folder. Setup: MT5-CONTROL-SETUP.md. Design: ARCHITECTURE-MT5-CONTROL.md.
+
+---------------------------------------------------------------------
+# Test build 2.1: instruments and live prices
+- Silver (XAGUSD) added. The admin ticks which instruments the EA may trade, and each chart is gated by its own symbol.
+- Live prices for all instruments in the admin and client app, labelled MT5 LIVE or SIMULATED.
+- The bridge goes on its own chart. Your EA stays on its own chart(s). See MT5-CONTROL-SETUP.md, sections 3b and 3c.
+
+---------------------------------------------------------------------
+# Test build 2.2: your EA integrated
+- Velocity_MeanReversion_XAUUSD_IK.mq5 is your EA plus the Investo Kings gate (added lines only). See MT5-CONTROL-SETUP.md section 2.
