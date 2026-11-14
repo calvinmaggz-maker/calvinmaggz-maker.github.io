@@ -11,6 +11,19 @@ function validRoom(r){return /^[a-z0-9]{10,40}$/.test(r)}
 function loadCfg(){try{var c=JSON.parse(localStorage.getItem(CFGK)||'null');return c&&validUrl(c.url)&&validRoom(c.room)?c:null}catch(e){return null}}
 try{var q=new URLSearchParams(location.search),u=q.get('db'),r=q.get('room');if(u&&r&&validUrl(u)&&validRoom(r)){localStorage.setItem(CFGK,JSON.stringify({url:u,room:r}));history.replaceState(null,'',location.pathname)}}catch(e){}
 SY.cfg=loadCfg();
+
+/* SHA-256 (used to sign commands to the MT5 EA) */
+function sha256(str){str=unescape(encodeURIComponent(str));function rr(n,x){return (x>>>n)|(x<<(32-n))}
+ var K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+ var H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19],w=[],l=str.length,i,j;
+ var m=[];for(i=0;i<l;i++)m[i>>2]|=str.charCodeAt(i)<<(24-(i%4)*8);m[l>>2]|=0x80<<(24-(l%4)*8);m[(((l+8)>>6)+1)*16-1]=l*8;
+ for(j=0;j<m.length;j+=16){var a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
+  for(i=0;i<64;i++){if(i<16)w[i]=m[j+i]|0;else{var s0=rr(7,w[i-15])^rr(18,w[i-15])^(w[i-15]>>>3),s1=rr(17,w[i-2])^rr(19,w[i-2])^(w[i-2]>>>10);w[i]=(w[i-16]+s0+w[i-7]+s1)|0}
+   var S1=rr(6,e)^rr(11,e)^rr(25,e),ch=(e&f)^(~e&g),t1=(h+S1+ch+K[i]+w[i])|0,S0=rr(2,a)^rr(13,a)^rr(22,a),mj=(a&b)^(a&c)^(b&c),t2=(S0+mj)|0;h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0}
+  H[0]=(H[0]+a)|0;H[1]=(H[1]+b)|0;H[2]=(H[2]+c)|0;H[3]=(H[3]+d)|0;H[4]=(H[4]+e)|0;H[5]=(H[5]+f)|0;H[6]=(H[6]+g)|0;H[7]=(H[7]+h)|0}
+ return H.map(function(x){return ('00000000'+(x>>>0).toString(16)).slice(-8)}).join('')}
+SY.sha256=sha256;SY.key=function(){return localStorage.getItem('ik_mt5_key')||''};SY.setKey=function(k){localStorage.setItem('ik_mt5_key',(k||'').trim())};
+
 function setStatus(s,m){SY.status=s;SY.msg=m;if(SY.onChange)SY.onChange();var el=document.getElementById('sy_stat');if(el)el.textContent=label()}
 function label(){return ({off:'Not connected',connecting:'Connecting…',online:'Online',error:'Problem',blocked:'Another device is running the engine'})[SY.status]+(SY.msg&&SY.status!=='online'&&SY.status!=='off'?': '+SY.msg:'')}
 SY.label=label;
@@ -34,7 +47,7 @@ function pushData(){if(role!=='admin'||SY.blocked||!SY.cfg||busyD)return;var s=A
  if(Object.keys(ch).length)jobs.push(req('PATCH','acc',ch).then(function(){Object.keys(info).forEach(function(id){var ci=info[id];if(ci){pushed.acc[id]=ci.j;accRev[id]=ci.r;okRev.acc[id]=ci.r}else{delete pushed.acc[id];delete accRev[id];delete okRev.acc[id]}})}));
  Promise.all(jobs).then(ok,fail).then(function(){busyD=false})}
 function pushLive(){if(role!=='admin'||SY.blocked||!SY.cfg||busyL)return;var s=AI.state();if(!s)return;busyL=true;
- var live={savedAt:Date.now(),simNow:s.simNow,speed:s.speed,px:s.px,usdzar:s.usdzar,mood:s.mood,session:s.session,master:s.master,scen:s.scen,settings:s.settings,metaRev:okRev.meta,accRev:okRev.acc,v:1};
+ var live={savedAt:Date.now(),simNow:s.simNow,speed:s.speed,px:s.px,usdzar:s.usdzar,mood:s.mood,session:s.session,master:s.master,scen:s.scen,settings:s.settings,ctlView:s.ctlView,metaRev:okRev.meta,accRev:okRev.acc,v:1};
  req('PUT','live',{s:JSON.stringify(live)}).then(ok,fail).then(function(){busyL=false})}
 function pushFull(force){if(role!=='admin'||SY.blocked||!SY.cfg||busyF)return;var now=Date.now();if(!force&&now-lastFull<20000)return;busyF=true;lastFull=now;req('PUT','full',{s:JSON.stringify(AI.state())}).catch(fail).then(function(){busyF=false})}
 function pushState(force){pushData();pushLive();pushFull(force)}
@@ -45,7 +58,11 @@ function checkLease(){if(role!=='admin'||!SY.cfg)return;req('GET','lease').then(
  else{if(seenLease.n!==l.n){seenLease={n:l.n,at:Date.now()}}else if(Date.now()-seenLease.at>9000){/* other engine silent: free to take over */setStatus('blocked','Other device stopped. You can take over.')}}}).catch(fail)}
 function block(){SY.blocked=true;setStatus('blocked','');if(SY.onChange)SY.onChange()}
 SY.mt5={data:null,hb:null,at:0,err:''};
-function startAdmin(){setStatus('connecting','');SY.every(function(){if(!SY.cfg)return;req('GET','mt5').then(function(d){if(!d){SY.mt5.data=null;return}if(d.hb!==SY.mt5.hb){SY.mt5.hb=d.hb;SY.mt5.at=Date.now()}SY.mt5.data=d;SY.mt5.err=''}).catch(function(e){SY.mt5.err=(e&&e.message)||'error'})},2000);
+var lastPushed=null;
+function startAdmin(){setStatus('connecting','');
+ AI.hooks.pushCmd=function(cmd,cb){var key=SY.key();if(!key||key.length<12)return cb(false,'Set the MT5 control key (at least 12 characters) on the MT5 Broker page.');if(!SY.cfg||SY.blocked)return cb(false,'No database connection.');var o={id:cmd.id,type:cmd.type,at:cmd.at,by:cmd.by,status:'PENDING'};o.sig=sha256(key+'|'+o.id+'|'+o.type+'|'+o.at+'|'+o.by);lastPushed=o;req('PUT','mt5cmd/current',o).then(function(){cb(true)},function(e){cb(false,(e&&e.message)||'Send failed')})};
+ AI.hooks.resend=function(){if(lastPushed)req('PUT','mt5cmd/current',lastPushed).catch(fail)};
+ SY.every(function(){if(SY.blocked||!SY.cfg)return;req('GET','mt5cmd/current').then(function(o){if(o&&o.id&&o.status&&o.status!=='PENDING')AI.cmdAck(o.id,o.status,o.err)}).catch(function(){})},700);SY.every(function(){if(!SY.cfg)return;req('GET','mt5').then(function(d){if(!d){SY.mt5.data=null;return}if(d.hb!==SY.mt5.hb){SY.mt5.hb=d.hb;SY.mt5.at=Date.now()}SY.mt5.data=d;SY.mt5.err=''}).catch(function(e){SY.mt5.err=(e&&e.message)||'error'})},2000);
  req('GET','lease').then(function(l){
   if(l&&l.owner!==DEV){seenLease={n:l.n,at:Date.now()};return new Promise(function(res){setTimeout(function(){req('GET','lease').then(function(l2){res(l2&&l2.owner!==DEV&&l2.n!==l.n?'busy':'free')}).catch(function(){res('free')})},4500)})}
   return 'free'}).then(function(st){

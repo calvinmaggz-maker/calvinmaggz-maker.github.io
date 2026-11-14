@@ -56,16 +56,16 @@ AI.activateNow=function(o){var s=S();if(s.session&&s.session.state!=='ENDED')ret
 AI.activate=function(id){var s=S();var ses=s.schedule.filter(function(x){return x.id===id})[0];if(!ses)return false;if(s.session&&s.session.state!=='ENDED')return false;
  ses.state='ACTIVE';ses.activatedAt=s.simNow;ses.stats={scalps:0,trades:0,wins:0,losses:0};s.session=ses;s.signals=[];s.pnlSeries=[];s.master.heartbeat=s.simNow;
  Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];a.run=null;a.ranSession=a.ranSession===ses.id?a.ranSession:null;if(['RUNNING','STOPPING'].indexOf(a.status)<0)a.status='IDLE'});
- logEv('Session '+ses.id+' ACTIVE');notice('all','session','AI session is live','AI Trading is live until '+hhmm(ses.expiry)+'. Press START AI to take part.');
+ logEv('Session '+ses.id+' ACTIVE'+(ses.dir?' ('+ses.dir+' MODE)':''));if(ses.dir)AI.noticeEligible('INVESTO KINGS AI TRADING IS NOW ACTIVE. '+ses.dir+' MODE ENABLED.');else notice('all','session','AI session is live','AI Trading is live until '+hhmm(ses.expiry)+'. Press START AI to take part.');
  if(s.botsJoin)botsStart();return true};
 function hhmm(t){var d=new Date(t+2*3600000);return ('0'+d.getUTCHours()).slice(-2)+':'+('0'+d.getUTCMinutes()).slice(-2)}
 function botsStart(){var s=S();Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(!a.bot)return;var r=AI.canStart(a);if(r.ok)AI.start(k,{instruments:a.instruments,lot:a.lot,perScalp:k==='C'?4:2,target:Math.round(a.balance*(k==='B'?1.12:1.2))})})}
 AI.terminate=function(reason){var s=S(),ses=s.session;if(!ses||ses.state!=='ACTIVE')return false;ses.state='ENDING';ses.endedBy=reason||'TERMINATED';ses.endingAt=s.simNow;
- logEv('Session ending ('+ses.endedBy+'): closing all positions');notice('all','session','AI session ending','The AI session is ending. All AI positions are being closed.');
+ logEv('Session ending ('+ses.endedBy+'): closing all positions');if(ses.dir)AI.noticeEligible('INVESTO KINGS AI TRADING HAS BEEN STOPPED.');else notice('all','session','AI session ending','The AI session is ending. All AI positions are being closed.');
  Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.status==='RUNNING')beginClose(a,'expiry');else if(a.status==='STOPPING')a.closing='expiry'});AI.save();return true};
 /* ---------- account actions ---------- */
 AI.canStart=function(a){var s=S(),ses=s.session;
- if(!ses||ses.state!=='ACTIVE')return {ok:false,code:'NOSESSION',msg:'No AI session is live.'};
+ if(!ses||ses.state!=='ACTIVE')return {ok:false,code:'NOSESSION',msg:'AI Trading has not been activated by the administrator.'};
  if(a.hold)return {ok:false,code:'HOLD',msg:'Your account is temporarily restricted.'}
  if(a.ranSession===ses.id)return {ok:false,code:'RAN',msg:'You already used AI in this session.'};
  if(!a.verified)return {ok:false,code:'UNVERIFIED',msg:'Verify your identity first.'};
@@ -108,9 +108,9 @@ function endSession(){var s=S(),ses=s.session;ses.state='ENDED';ses.endedAt=s.si
  Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.run&&a.run.sessionId===ses.id){parts.push({id:a.id,name:a.name,start:a.run.startBalance,final:a.balance,pnl:a.run.pnl,trades:a.run.trades.length,wins:a.run.wins,losses:a.run.losses,scalps:a.run.scalps,target:a.run.target,status:a.run.endStatus});tp+=a.run.pnl;if(a.run.endStatus==='TARGET_REACHED')tg++}
   else if(a.status==='IDLE'&&a.balance<s.settings.minBalance)parts.push({id:a.id,name:a.name,start:a.balance,final:a.balance,pnl:0,trades:0,wins:0,losses:0,scalps:0,status:'NOT_ELIGIBLE',skip:true})});
  var real=parts.filter(function(p){return !p.skip}),st=ses.stats;var bySym={};Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.run&&a.run.sessionId===ses.id){if(a.run.bySym){Object.keys(a.run.bySym).forEach(function(sy){var q=a.run.bySym[sy],b=bySym[sy]=bySym[sy]||{trades:0,wins:0,pnl:0};b.trades+=q.trades;b.wins+=q.wins;b.pnl+=q.pnl})}else a.run.trades.forEach(function(t){var b=bySym[t.sym]=bySym[t.sym]||{trades:0,wins:0,pnl:0};b.trades++;if(t.pnl>0)b.wins++;b.pnl+=t.pnl})}});
- var rep={id:ses.id,name:ses.name,date:ses.start,start:ses.activatedAt||ses.start,end:s.simNow,duration:s.simNow-(ses.activatedAt||ses.start),endedBy:ses.endedBy||'EXPIRY',instruments:ses.instruments,customers:real.length,scalps:real.reduce(function(a,p){return a+p.scalps},0),trades:st.trades,wins:st.wins,losses:st.losses,winRate:st.trades?st.wins/st.trades*100:0,targets:tg,pnl:tp,open:0,parts:parts,bySym:bySym,series:s.pnlSeries.slice(),simulated:true};
+ var rep={id:ses.id,name:ses.name,date:ses.start,start:ses.activatedAt||ses.start,end:s.simNow,duration:s.simNow-(ses.activatedAt||ses.start),endedBy:ses.endedBy||'EXPIRY',instruments:ses.instruments,customers:real.length,scalps:real.reduce(function(a,p){return a+p.scalps},0),trades:st.trades,wins:st.wins,losses:st.losses,winRate:st.trades?st.wins/st.trades*100:0,targets:tg,pnl:tp,open:0,parts:parts,bySym:bySym,series:s.pnlSeries.slice(),simulated:true,dir:ses.dir||null};
  s.history.unshift(rep);if(s.history.length>60)s.history.length=60;ses.report=rep.id;logEv('Session '+ses.id+' ENDED');
- notice('all','session','AI session ended','The AI session has ended. See your results in AI Trading.');AI.save()}
+ if(!ses.dir)notice('all','session','AI session ended','The AI session has ended. See your results in AI Trading.');AI.save()}
 /* ---------- master EA + execution ---------- */
 function movePrices(){var s=S(),m=s.mood;s.usdzar=round(Math.max(16,Math.min(20,s.usdzar+(Math.random()-.5)*.0016)),4);
  AI.INSTRUMENTS.forEach(function(k){var p=s.px[k],sp=SPEC[k],phi=m==='trending'?.93:m==='ranging'?-.08:.8,vm=m==='volatile'?2.2:1;
@@ -118,10 +118,10 @@ function movePrices(){var s=S(),m=s.mood;s.usdzar=round(Math.max(16,Math.min(20,
   if(s.scen.gap&&s.scen.gap===k){p.mid+=sp.sl*4*(s.scen.gapDir||-1);s.scen.gap=null}p.mid=round(p.mid,sp.dig+1)})}
 function masterEA(){var s=S(),ses=s.session;if(!ses||ses.state!=='ACTIVE'||s.master.down)return;if(simLeft()<s.settings.noEntryBeforeExpiryS*1000)return;
  ses.instruments.forEach(function(sym){if(!AI.instrumentOpen(sym,s.simNow))return;var busy=s.signals.some(function(g){return g.sym===sym&&s.simNow<g.expireAt});if(busy||Math.random()>.03)return;
-  var d=s.px[sym].drift,side=Math.abs(d)<SPEC[sym].vol*.15?(Math.random()>.5?'BUY':'SELL'):(d>0?'BUY':'SELL');var sp=SPEC[sym],e=side==='BUY'?ask(sym):bid(sym);
+  var d=s.px[sym].drift,side=Math.abs(d)<SPEC[sym].vol*.15?(Math.random()>.5?'BUY':'SELL'):(d>0?'BUY':'SELL');if(ses.dir)side=ses.dir;var sp=SPEC[sym],e=side==='BUY'?ask(sym):bid(sym);
   var sig={id:s.seq.sig++,sym:sym,side:side,entry:e,tp:round(side==='BUY'?e+sp.tp:e-sp.tp,sp.dig+1),sl:round(side==='BUY'?e-sp.sl:e+sp.sl,sp.dig+1),at:s.simNow,expireAt:s.simNow+sp.hold*1000,scalp:s.seq.scalp++};
   s.signals.push(sig);if(s.signals.length>40)s.signals.shift();ses.stats.scalps++;logEv('Master: '+sym+' '+side+' @'+e.toFixed(sp.dig));executeSignal(sig)})}
-function executeSignal(sig){var s=S();Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.status!=='RUNNING'||a.closing||a.positions.length)return;if(a.instruments.indexOf(sig.sym)<0)return;
+function executeSignal(sig){var s=S();if(s.session&&s.session.dir&&sig.side!==s.session.dir){logEv('Blocked '+sig.side+' entry: only '+s.session.dir+' is allowed');return}Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.status!=='RUNNING'||a.closing||a.positions.length)return;if(a.instruments.indexOf(sig.sym)<0)return;
  var m=AI.metrics(a),mid=s.px[sig.sym].mid,sp=SPEC[sig.sym];
  function safe(n,lot){var req=marginZAR(sig.sym,lot,mid)*n;var risk=sp.sl*sp.contract*lot*n*s.usdzar;return req<=m.free*.4&&risk<=(a.balance-(a.reserved||0))*s.settings.scalpRiskPct/100}
  var n=a.perScalp,lot=a.lot;if(a.riskPct){var pl=AI.riskPlan(a.balance-(a.reserved||0),[sig.sym],n,a.riskPct)[0];if(!pl||pl.skip){logEv(a.name+': skipped '+sig.sym+' (risk amount too small for the minimum lot)');return}n=pl.n;lot=pl.lot;var tr_=0;while(!safe(n,lot)&&tr_<8){tr_++;if(lot>.01){lot=Math.max(.01,Math.floor(lot*75)/100)}else if(n>2){n=Math.max(2,Math.floor(n*.75))}else break}if(!safe(n,lot)){logEv(a.name+': skipped '+sig.sym+' (margin)');return}if(n<a.perScalp||pl.n<a.perScalp)logEv(a.name+': '+sig.sym+' scalp '+n+' trades x '+lot.toFixed(2)+' lot (risk '+a.riskPct+'%)')}else if(!safe(n,lot)){var lo=2,hi=n,best=0;while(lo<=hi){var md=(lo+hi)>>1;if(safe(md,lot)){best=md;lo=md+1}else hi=md-1}if(best>=2){n=best;logEv(a.name+': '+sig.sym+' scalp reduced to '+n+' trades to fit balance')}else{n=2;lot=.01;if(!safe(n,lot)){logEv(a.name+': skipped '+sig.sym+' (margin/risk)');return}}}
@@ -158,7 +158,7 @@ function handleCmd(c){var s=S(),p=c.p;
  if(c.type==='signal'){s.extSignals=s.extSignals||[];s.extSignals.push({id:c.id,p:p,ts:s.simNow})}}
 AI.retryAll=function(){var s=S();Object.keys(s.accounts).forEach(function(k){s.accounts[k].positions.forEach(function(p){if(p.escalated){p.escalated=false;p.alerted=false;p.closeReq={reason:p.closeReq?p.closeReq.reason:'admin',attempts:0,nextAt:s.simNow}}})});AI.save()};
 AI.adminStop=function(id){var a=S().accounts[id];if(!a||a.status!=='RUNNING')return false;beginClose(a,'admin');AI.save();return true};
-AI.forceScalp=function(sym,side){var s=S(),ses=s.session;if(!ses||ses.state!=='ACTIVE')return false;var sp=SPEC[sym],e=side==='BUY'?ask(sym):bid(sym);var sig={id:s.seq.sig++,sym:sym,side:side,entry:e,tp:round(side==='BUY'?e+sp.tp:e-sp.tp,sp.dig+1),sl:round(side==='BUY'?e-sp.sl:e+sp.sl,sp.dig+1),at:s.simNow,expireAt:s.simNow+sp.hold*1000,scalp:s.seq.scalp++};s.signals.push(sig);ses.stats.scalps++;logEv('Test Lab: '+sym+' '+side+' scalp generated');executeSignal(sig);AI.save();return true};
+AI.forceScalp=function(sym,side){var s=S(),ses=s.session;if(!ses||ses.state!=='ACTIVE')return false;if(ses.dir&&side!==ses.dir){logEv('Blocked '+side+' entry: only '+ses.dir+' is allowed');return false}var sp=SPEC[sym],e=side==='BUY'?ask(sym):bid(sym);var sig={id:s.seq.sig++,sym:sym,side:side,entry:e,tp:round(side==='BUY'?e+sp.tp:e-sp.tp,sp.dig+1),sl:round(side==='BUY'?e-sp.sl:e+sp.sl,sp.dig+1),at:s.simNow,expireAt:s.simNow+sp.hold*1000,scalp:s.seq.scalp++};s.signals.push(sig);ses.stats.scalps++;logEv('Test Lab: '+sym+' '+side+' scalp generated');executeSignal(sig);AI.save();return true};
 AI.sendSignal=function(p){var s=S();s.extSignals=s.extSignals||[];var id='X'+(s.seq.n++);s.extSignals.push({id:id,p:p,ts:s.simNow});if(s.extSignals.length>60)s.extSignals.shift();AI.save();return id};
 AI.notify=function(to,title,body){notice(to,'info',title,body);AI.save()};
 AI.addTestAccount=function(name,bal){var s=S(),id='T'+(s.seq.n++);s.accounts[id]=newAcc(id,name||('Test '+id),bal,true);AI.save();return id};
@@ -226,4 +226,58 @@ AI.maxTrades=function(avail,ins,lot){var s=AI.state(),best=200,by='';(ins||[]).f
 /* ---- size a scalp from a risk percentage ---- */
 (function(){var AI=window.IKAI;
 AI.riskPlan=function(avail,ins,per,pct){var s=AI.state(),out=[];(ins||[]).forEach(function(sym){var sp=AI.SPEC[sym];if(!sp)return;var r1=sp.sl*sp.contract*s.usdzar,budget=avail*pct/100,n=per,lot=budget/(n*r1);lot=Math.floor(lot*100+1e-9)/100;var skip=false;if(lot<.01){lot=.01;n=Math.floor(budget/(r1*.01));if(n<2){skip=true;n=0}}if(lot>100)lot=100;out.push({sym:sym,lot:lot,n:n,budget:budget,minPct:avail>0?(2*r1*.01)/avail*100:999,skip:skip})});return out};
+})();
+
+/* ================= manual activation + authenticated command layer ================= */
+(function(){var AI=window.IKAI;
+var NOEXP=4102444800000;
+function S(){return AI.state()}
+AI.CMD_TYPES=['ACTIVATE_BUY','ACTIVATE_SELL','STOP_AI','CLOSE_ALL','EMERGENCY_STOP','GET_STATUS'];
+AI.hooks={pushCmd:null,resend:null};
+AI.ctl=function(){var s=S();if(!s.ctl)s.ctl={target:'SIM',simEaOnline:true};if(!s.cmds)s.cmds=[];if(!s.mt5)s.mt5={alive:false,at:0,data:null};return s.ctl};
+AI.setTarget=function(t){AI.ctl().target=t==='MT5'?'MT5':'SIM';AI.save()};
+AI.setMt5=function(alive,data,at){var s=S();AI.ctl();s.mt5={alive:!!alive,at:at||0,data:data||null}};
+AI.eaView=function(){var s=S(),c=AI.ctl(),m=s.mt5,ea,mt;if(c.target==='SIM'){ea=c.simEaOnline?'SIMULATED':'DISCONNECTED';mt='NOT USED'}else{ea=m.alive?'CONNECTED':'DISCONNECTED';mt=(m.alive&&m.data&&m.data.connected)?'CONNECTED':'DISCONNECTED'}return {target:c.target,ea:ea,mt5:mt}};
+function live(){var ses=S().session;return !!ses&&(ses.state==='ACTIVE'||ses.state==='ENDING')}
+function audit(cmd,txt){var s=S();s.audit=s.audit||[];s.audit.unshift({t:Date.now(),act:'COMMAND',id:'',name:cmd.by,reason:'',note:cmd.type+' '+txt,by:cmd.by,ref:cmd.id});s.audit=s.audit.slice(0,300)}
+function setSt(cmd,st){cmd.status=st;cmd.hist.push([st,Date.now()])}
+function fail(cmd,msg){if(cmd.status==='EXECUTED'||cmd.status==='FAILED')return;cmd.err=msg;setSt(cmd,'FAILED');audit(cmd,'FAILED: '+msg);AI.save()}
+AI.noticeEligible=function(body){var s=S();Object.keys(s.accounts).forEach(function(k){var a=s.accounts[k];if(a.verified&&a.agreement&&!a.hold&&a.balance-(a.reserved||0)>=s.settings.minBalance)AI.notify(a.id,'INVESTO KINGS AI TRADING',body)})};
+AI.activateMode=function(dir,by){var s=S();if(s.session&&s.session.state!=='ENDED')return null;var ses={id:'AI-'+('0000'+(s.seq.sess++)).slice(-4),name:dir+' MODE',dir:dir,start:s.simNow,expiry:NOEXP,instruments:AI.INSTRUMENTS.slice(),state:'SCHEDULED',reminded:{},createdAt:s.simNow,startedBy:by||'Admin'};s.schedule.push(ses);if(s.schedule.length>30)s.schedule.splice(0,s.schedule.length-30);var ok=AI.activate(ses.id);AI.save();return ok?ses:null};
+function closeAllPositions(){var s=S();Object.keys(s.accounts).forEach(function(k){s.accounts[k].positions.forEach(function(p){if(!p.closeReq)p.closeReq={reason:'closeall',attempts:0,nextAt:s.simNow}})});s.log.unshift({t:s.simNow,m:'CLOSE ALL: closing every managed position'})}
+function emergency(){var s=S();if(s.session)s.session.emergency=true;if(s.session&&s.session.state==='ACTIVE')AI.terminate('EMERGENCY');closeAllPositions()}
+function execute(cmd){var s=S();try{
+ if(cmd.type==='ACTIVATE_BUY'||cmd.type==='ACTIVATE_SELL'){var d=cmd.type==='ACTIVATE_BUY'?'BUY':'SELL';if(live())return fail(cmd,'A trading mode is already active.');if(!AI.activateMode(d,cmd.by))return fail(cmd,'Could not activate trading.')}
+ else if(cmd.type==='STOP_AI'){if(!(s.session&&s.session.state==='ACTIVE'))return fail(cmd,'AI trading is not active.');AI.terminate('ADMIN_STOP')}
+ else if(cmd.type==='CLOSE_ALL')closeAllPositions();
+ else if(cmd.type==='EMERGENCY_STOP')emergency();
+ setSt(cmd,'EXECUTED');audit(cmd,'EXECUTED ('+cmd.src+')')}catch(e){fail(cmd,String(e.message||e))}AI.save()}
+AI.issue=function(type,by){var s=S(),c=AI.ctl(),ses=s.session,now=Date.now();
+ if(AI.CMD_TYPES.indexOf(type)<0)return {ok:false,msg:'Unknown command.'};
+ var busy=s.cmds.filter(function(x){return ['PENDING','SENT','RECEIVED'].indexOf(x.status)>=0})[0];
+ if(busy&&type!=='EMERGENCY_STOP')return {ok:false,msg:'The command '+busy.type+' is still in progress. Wait for it to finish.'};
+ if((type==='ACTIVATE_BUY'||type==='ACTIVATE_SELL')&&live())return {ok:false,msg:'Stop the current mode and wait until all positions are closed before choosing a direction.'};
+ if(type==='STOP_AI'&&!(ses&&ses.state==='ACTIVE'))return {ok:false,msg:'AI trading is not active.'};
+ var cmd={id:'C'+now.toString(36)+Math.random().toString(36).slice(2,5),type:type,by:by||'Admin',at:now,t0:now,status:'PENDING',src:c.target,hist:[['PENDING',now]],ack:null,err:null};
+ if(busy&&type==='EMERGENCY_STOP'){busy.err='Replaced by EMERGENCY_STOP';setSt(busy,'FAILED')}
+ s.cmds.unshift(cmd);s.cmds.length=Math.min(s.cmds.length,40);audit(cmd,'issued ('+c.target+')');
+ if(c.target==='MT5'&&!s.mt5.alive){fail(cmd,'MT5 EA is not connected. The command was not sent.');return {ok:false,msg:cmd.err,cmd:cmd}}
+ AI.save();return {ok:true,cmd:cmd}};
+AI.cmdAck=function(id,status,err){var s=S(),cmd=(s.cmds||[]).filter(function(x){return x.id===id})[0];if(!cmd||cmd.src!=='MT5')return;if(cmd.status==='EXECUTED'||cmd.status==='FAILED')return;
+ if(status==='RECEIVED'){if(cmd.status!=='RECEIVED'){setSt(cmd,'RECEIVED');cmd.ack='MT5 EA'}}
+ else if(status==='EXECUTED'){if(cmd.status!=='RECEIVED'){setSt(cmd,'RECEIVED');cmd.ack='MT5 EA'}execute(cmd)}
+ else if(status==='FAILED')fail(cmd,err||'The EA reported an error.')};
+var wasLost=false;
+AI.cmdTick=function(){var s=S(),c=AI.ctl(),now=Date.now();
+ s.cmds.forEach(function(cmd){if(['PENDING','SENT','RECEIVED'].indexOf(cmd.status)<0)return;var age=now-cmd.t0;
+  if(cmd.src==='SIM'){if(!c.simEaOnline){if(age>8000)fail(cmd,'The simulated EA did not respond (EA offline).');return}
+   if(cmd.status==='PENDING'&&age>=300)setSt(cmd,'SENT');if(cmd.status==='SENT'&&age>=900){setSt(cmd,'RECEIVED');cmd.ack='Simulated EA'}if(cmd.status==='RECEIVED'&&age>=1600)execute(cmd)}
+  else{if(cmd.status==='PENDING'&&!cmd.pushing){if(AI.hooks.pushCmd){cmd.pushing=true;AI.hooks.pushCmd(cmd,function(ok,err){cmd.pushing=false;if(ok){if(cmd.status==='PENDING')setSt(cmd,'SENT')}else fail(cmd,err||'Could not send the command.')})}else if(age>3000)fail(cmd,'No connection to the database.')}
+   if(age>45000&&cmd.status!=='RECEIVED')fail(cmd,'No acknowledgement from the EA within 45 seconds.');if(age>90000)fail(cmd,'The EA did not finish the command in time.')}});
+ var v=AI.eaView(),ses=s.session,lv=live();s.ctlView={target:v.target,ea:v.ea,mt5:v.mt5,dir:lv?ses.dir||null:null,state:ses?ses.state:'NONE',lastAt:(s.mt5&&s.mt5.at)||0};
+ var lost=c.target==='MT5'&&!s.mt5.alive&&lv;if(lost&&!wasLost)s.log.unshift({t:s.simNow,m:'MT5 EA DISCONNECTED. Open positions rely on the EA-side safeguards.'});if(!lost&&wasLost&&c.target==='MT5')s.log.unshift({t:s.simNow,m:'MT5 EA reconnected.'});wasLost=lost};
+AI.liveStats=function(){var s=S(),ses=s.session,accs=Object.keys(s.accounts).map(function(k){return s.accounts[k]}),open=0,fl=0,pl=0,part=0,elig=0;
+ accs.forEach(function(a){open+=a.positions.length;fl+=AI.metrics(a).floating;if(a.verified&&a.agreement&&!a.hold&&a.balance-(a.reserved||0)>=s.settings.minBalance)elig++;if(a.run&&ses&&a.run.sessionId===ses.id){part++;pl+=a.run.pnl+AI.metrics(a).floating}});
+ var st=(ses&&ses.stats)||{trades:0,wins:0,losses:0};return {participants:part,eligible:elig,open:open,closed:st.trades,wins:st.wins,losses:st.losses,winRate:st.trades?st.wins/st.trades*100:null,pnl:pl,floating:fl}};
+AI.simEa=function(on){AI.ctl().simEaOnline=!!on;AI.save()};
 })();

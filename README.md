@@ -197,3 +197,10 @@ No real accounts, money, bank, 1Voucher, ID check or trading platform is connect
 - When a client starts AI they now choose a risk percentage of their available balance (for example 1% or 2%) and the number of trades per scalp. The engine works out the lot size for each trade from the stop-loss distance. This matches how a percentage-risk EA behaves.
 - The app shows the risk amount in rand, how many trades of what lot size each instrument will use, and warns when the amount is too small for the smallest lot.
 - The admin can cap the maximum risk percentage in AI Trading > Settings (default 8%).
+
+---------------------------------------------------------------------
+# Test build 2.0: manual BUY / SELL activation and MT5 remote control
+- Session scheduling and countdowns are removed. The administrator activates trading manually in BUY MODE or SELL MODE.
+- Admin > AI Trading Control: ACTIVATE, STOP, CLOSE ALL, EMERGENCY STOP, command tracking (PENDING, SENT, RECEIVED, EXECUTED, FAILED) and separate simulated and MT5 data.
+- Client app statuses: OFFLINE, WAITING FOR ADMIN, BUY MODE ACTIVE, SELL MODE ACTIVE, TRADING, STOPPING, SESSION ENDED.
+- MT5 files are in the mt5 folder. Setup: MT5-CONTROL-SETUP.md. Design: ARCHITECTURE-MT5-CONTROL.md.
