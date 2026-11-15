@@ -214,3 +214,9 @@ No real accounts, money, bank, 1Voucher, ID check or trading platform is connect
 ---------------------------------------------------------------------
 # Test build 2.2: your EA integrated
 - Velocity_MeanReversion_XAUUSD_IK.mq5 is your EA plus the Investo Kings gate (added lines only). See MT5-CONTROL-SETUP.md section 2.
+
+---------------------------------------------------------------------
+# Test build 2.3: Admin as a phone app
+- Phone layout for the admin (bottom bar, slide-out menu, bottom-sheet dialogs, back button), gold app icon, install button.
+- Change the default admin login in Settings (under AI Trading) > Security.
+- See ADMIN-MOBILE-APP.md.
