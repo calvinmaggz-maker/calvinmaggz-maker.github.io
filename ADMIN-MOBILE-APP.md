@@ -18,13 +18,23 @@ Inside the app: the bottom bar has Home, AI, Compliance, MT5 and More. **More** 
 3. Download the zip and install the APK.
 4. To remove the address bar at the top, add the new app's fingerprint to `.well-known/assetlinks.json` in your repository. If that file already exists for the client app, keep its entry and add the new one to the same list.
 
-## Important: keep the app open
-The simulation engine and the command channel run inside the admin app, because there is no server yet.
-- While the admin app is open and the screen is on, everything works. The app asks the phone to keep the screen awake.
-- If the phone sleeps or you close the app, the engine stops. Clients then see AI Trading as offline after about 20 seconds, and commands cannot be sent. Your EA keeps its own stop and safety rules.
-- Only one admin screen can run the engine at a time. If the PC admin is running, the phone shows "Another device is running the AI engine". Tap Take over only if you want to move it.
+## Control the PC from your phone (remote control)
+Run the engine on your PC and use the phone as a remote. The phone never takes over, so closing it or switching to the client app does not disturb anything.
 
-The proper fix is to run the engine on an always-on computer or server, and use the phone only as a remote control. That is the next build step.
+How to set it up:
+1. On the PC open the admin page first and sign in. In Settings (under AI Trading) > Online database, turn ON "Always take the engine when this device opens". Leave the PC admin open and keep the PC awake. Your MT5 and the bridge EA also stay open on the PC.
+2. On the PC and on the phone enter the SAME control key on the MT5 Broker page. The phone signs every action with it, and the PC rejects anything that does not match.
+3. Open the admin app on the phone. It detects the PC engine and shows a green REMOTE tag and a banner. It does not take over.
+
+What you can do from the phone: choose BUY or SELL MODE and instruments, Activate, Stop, Close All, Emergency Stop, Get status, freeze or restore a client, review compliance alerts, change risk and account levels, send signals and notifications, stop a client, retry a failed close. Everything is recorded as "Admin (phone)" in the command log and audit log.
+
+What stays on the PC only: simulation speed, market mood, time jumps, resets and the other test tools.
+
+If the phone cannot reach the PC engine for about 12 seconds, it shows PC OFFLINE, keeps the last data on screen, and refuses to send actions, so a command is never reported as done when nobody ran it. The Take over button then lets you run the engine from the phone. Do not use it while the PC is running.
+
+Data use: while the phone app is open it downloads a small update about every 2 seconds. It stops when you close the app.
+
+If you open the phone first (PC off), the phone runs the engine itself. Then you must keep the phone app open and awake. When you later open the PC with the switch above ON, the PC takes the engine back and the phone becomes the remote.
 
 ## Security note
 The login is a lock stored on the device, not real security. Anyone who knows the address can see the sign-in screen. Do not put real client data behind it until real sign-in and a server are added.

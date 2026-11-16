@@ -284,3 +284,6 @@ AI.liveStats=function(){var s=S(),ses=s.session,accs=Object.keys(s.accounts).map
  var st=(ses&&ses.stats)||{trades:0,wins:0,losses:0};return {participants:part,eligible:elig,open:open,closed:st.trades,wins:st.wins,losses:st.losses,winRate:st.trades?st.wins/st.trades*100:null,pnl:pl,floating:fl}};
 AI.simEa=function(on){AI.ctl().simEaOnline=!!on;AI.save()};
 })();
+
+/* ---- settings can be changed from a remote admin ---- */
+(function(){var AI=window.IKAI;AI.setSettings=function(o){var s=AI.state();Object.keys(o||{}).forEach(function(k){if(typeof o[k]==='number'&&isFinite(o[k]))s.settings[k]=o[k]});AI.save();return {ok:true}}})();

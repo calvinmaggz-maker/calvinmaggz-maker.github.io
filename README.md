@@ -220,3 +220,7 @@ No real accounts, money, bank, 1Voucher, ID check or trading platform is connect
 - Phone layout for the admin (bottom bar, slide-out menu, bottom-sheet dialogs, back button), gold app icon, install button.
 - Change the default admin login in Settings (under AI Trading) > Security.
 - See ADMIN-MOBILE-APP.md.
+
+---------------------------------------------------------------------
+# Test build 2.4: remote control from the phone
+- The PC runs the engine and the EA link. The phone admin controls it remotely without taking over. See ADMIN-MOBILE-APP.md.
