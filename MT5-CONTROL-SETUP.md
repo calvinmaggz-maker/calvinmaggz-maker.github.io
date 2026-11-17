@@ -6,15 +6,17 @@ The app does not trade. Your existing EA stays the trading engine and keeps its 
 - **IK_Gate.mqh** is an include file. Your EA asks it one question before each new trade: "may I open a BUY or a SELL right now?"
 
 ## 1. Install
-1. Copy `IK_Gate.mqh` into the MT5 folder `MQL5\Include` (File, Open Data Folder).
+1. Only if you use the gate with another EA: copy `IK_Gate.mqh` into the MT5 folder `MQL5\Include` (File, Open Data Folder). Not needed for the Velocity EA.
 2. Copy `IK_Bridge.mq5` into `MQL5\Experts`. Open it in MetaEditor (F4) and press F7. The panel should say 0 errors. If not, send me a screenshot of the errors.
 3. This replaces the older read-only IK_Bridge_Reader. Remove that one from the chart first.
 
 ## 2. Your EA: Velocity_MeanReversion_XAUUSD
-I have already added the gate to a copy of your EA: `Velocity_MeanReversion_XAUUSD_IK.mq5`. Use that file instead of the original. Compare the two files and you will see only added lines, nothing removed.
+I have already added the gate to a copy of your EA: `Velocity_MeanReversion_XAUUSD_IK.mq5`. The gate code is built into this file, so you do NOT need IK_Gate.mqh for it and there is nothing to copy into the Include folder. Use this file instead of the original.
+
+(If MetaEditor says `file 'include\IK_Gate.mqh' not found`, you have an older copy of the EA that expects the separate include file. Replace it with the newest `_IK` file. For any other EA, copy IK_Gate.mqh into the MT5 folder: File, Open Data Folder, MQL5, Include.) Compare the two files and you will see only added lines, nothing removed.
 
 What was added:
-- `#include <IK_Gate.mqh>` and a new input `UseIKGate` (default true).
+- The gate functions (built in) and a new input `UseIKGate` (default true).
 - `IK_Tick()` at the start of OnTick, so the admin can see the EA is on this chart.
 - A check before the SELL branch and the BUY branch of your entry logic, and a last check inside `OpenTrade`. If the admin has not activated that direction for this symbol, no order is sent.
 

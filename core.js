@@ -247,6 +247,6 @@ IK.boot=function(){load();
  history.replaceState({d:1},'');history.pushState({d:1},'');
  IK.go('splash',{},{reset:true});
  setInterval(IK.tick,1000);
- if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}
+ if('serviceWorker' in navigator&&!window.Capacitor){navigator.serviceWorker.register('sw.js').catch(function(){})}
  if(!navigator.onLine)setTimeout(IK.noInternet,100)};
 })();

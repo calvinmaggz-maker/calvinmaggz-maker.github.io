@@ -224,3 +224,7 @@ No real accounts, money, bank, 1Voucher, ID check or trading platform is connect
 ---------------------------------------------------------------------
 # Test build 2.4: remote control from the phone
 - The PC runs the engine and the EA link. The phone admin controls it remotely without taking over. See ADMIN-MOBILE-APP.md.
+
+---------------------------------------------------------------------
+# Test build 3.0: real Android apps
+- GitHub builds real Android APKs (admin and client) with the app files bundled inside. See ANDROID-APP-BUILD.md and desktop-build/build-android.yml.
