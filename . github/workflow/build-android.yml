@@ -1,0 +1,75 @@
+# Put this file in your GitHub repository at:  .github/workflows/build-android.yml
+# Then open the Actions tab, choose "Build Android App", tap "Run workflow", pick admin or client.
+# The finished APK appears under Artifacts at the bottom of the run page.
+name: Build Android App
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'Which app to build'
+        required: true
+        default: admin
+        type: choice
+        options:
+          - admin
+          - client
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      APP: ${{ github.event.inputs.app }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare the web files
+        run: python3 mobile-assets/prepare_web.py "$APP"
+
+      - name: Create the Android project
+        working-directory: mobile
+        run: |
+          npm install
+          npx cap add android
+
+      - name: Add icons, splash screen, colours and version
+        run: python3 mobile-assets/patch_android.py "$APP" "${{ github.run_number }}"
+
+      - name: Build the release APK
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Align and sign the APK
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -e
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > ks.p12
+            PASS="$KS_PASS"
+          else
+            cp mobile-assets/ik-signing.p12 ks.p12
+            PASS=investokings
+          fi
+          UNSIGNED=$(ls mobile/android/app/build/outputs/apk/release/*.apk | head -1)
+          OUT="IK-$APP-1.0.${{ github.run_number }}.apk"
+          "$BT/zipalign" -p -f 4 "$UNSIGNED" aligned.apk
+          "$BT/apksigner" sign --ks ks.p12 --ks-type PKCS12 --ks-pass "pass:$PASS" --ks-key-alias ik --key-pass "pass:$PASS" --out "$OUT" aligned.apk
+          "$BT/apksigner" verify "$OUT"
+          echo "APK_NAME=$OUT" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APK_NAME }}
+          path: ${{ env.APK_NAME }}
